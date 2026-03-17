@@ -45,6 +45,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -87,3 +88,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/app_icon/counter_toolkit_icon_1024.png
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: assets/app_icon/counter_toolkit_icon_1024.png
+    background_color: "#133A39"
+    theme_color: "#133A39"
+  windows:
+    generate: true
+    image_path: assets/app_icon/counter_toolkit_icon_1024.png
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: assets/app_icon/counter_toolkit_icon_1024.png
