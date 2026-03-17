@@ -39,11 +39,63 @@ let fileManager = FileManager.default
 let root = URL(fileURLWithPath: fileManager.currentDirectoryPath, isDirectory: true)
 let outputDir = root.appendingPathComponent("assets/app_icon", isDirectory: true)
 let outputURL = outputDir.appendingPathComponent("counter_toolkit_icon_1024.png")
+let iosLaunchImageDir = root.appendingPathComponent(
+  "ios/Runner/Assets.xcassets/LaunchImage.imageset",
+  isDirectory: true
+)
 
 try fileManager.createDirectory(
   at: outputDir,
   withIntermediateDirectories: true
 )
+try fileManager.createDirectory(
+  at: iosLaunchImageDir,
+  withIntermediateDirectories: true
+)
+
+func writePNG(_ bitmap: NSBitmapImageRep, to url: URL) throws {
+  guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
+    fatalError("Unable to create PNG data for \(url.lastPathComponent)")
+  }
+
+  try pngData.write(to: url, options: .atomic)
+}
+
+func scaledBitmap(from image: NSImage, dimension: Int) -> NSBitmapImageRep {
+  let size = NSSize(width: dimension, height: dimension)
+  guard let bitmap = NSBitmapImageRep(
+    bitmapDataPlanes: nil,
+    pixelsWide: dimension,
+    pixelsHigh: dimension,
+    bitsPerSample: 8,
+    samplesPerPixel: 4,
+    hasAlpha: true,
+    isPlanar: false,
+    colorSpaceName: .deviceRGB,
+    bytesPerRow: 0,
+    bitsPerPixel: 0
+  ),
+    let context = NSGraphicsContext(bitmapImageRep: bitmap)
+  else {
+    fatalError("Unable to create scaled bitmap context")
+  }
+
+  bitmap.size = size
+
+  NSGraphicsContext.saveGraphicsState()
+  NSGraphicsContext.current = context
+  NSColor.clear.setFill()
+  NSRect(origin: .zero, size: size).fill()
+  image.draw(
+    in: NSRect(origin: .zero, size: size),
+    from: NSRect(origin: .zero, size: image.size),
+    operation: .copy,
+    fraction: 1.0
+  )
+  NSGraphicsContext.restoreGraphicsState()
+
+  return bitmap
+}
 
 let canvasSize = NSSize(width: 1024, height: 1024)
 guard let bitmap = NSBitmapImageRep(
@@ -223,9 +275,22 @@ dot.fill()
 
 NSGraphicsContext.restoreGraphicsState()
 
-guard let pngData = bitmap.representation(using: .png, properties: [:]) else {
-  fatalError("Unable to create PNG data")
+try writePNG(bitmap, to: outputURL)
+
+let iconImage = NSImage(size: canvasSize)
+iconImage.addRepresentation(bitmap)
+
+let launchImages: [(String, Int)] = [
+  ("LaunchImage.png", 220),
+  ("LaunchImage@2x.png", 440),
+  ("LaunchImage@3x.png", 660),
+]
+
+for (filename, dimension) in launchImages {
+  let scaled = scaledBitmap(from: iconImage, dimension: dimension)
+  let url = iosLaunchImageDir.appendingPathComponent(filename)
+  try writePNG(scaled, to: url)
+  print("Generated \(url.path)")
 }
 
-try pngData.write(to: outputURL, options: .atomic)
 print("Generated \(outputURL.path)")
