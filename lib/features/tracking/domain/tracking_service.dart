@@ -5,5 +5,9 @@ abstract class TrackingService {
 
   List<String> get sampleReferences;
 
-  Future<TrackingLookupOutcome> lookup(String reference);
+  List<TrackingLookupMode> get supportedModes;
+
+  List<TrackingProviderGuide> get providerGuides;
+
+  Future<TrackingLookupOutcome> lookup(TrackingLookupRequest request);
 }

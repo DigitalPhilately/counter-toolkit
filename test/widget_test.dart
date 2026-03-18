@@ -15,6 +15,7 @@ void main() {
 
     expect(find.text('Track & Trace'), findsWidgets);
     expect(find.text('Search by tracking reference'), findsOneWidget);
+    expect(find.text('Auto route'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Look up'));
     await tester.tap(find.text('Look up'));
@@ -23,5 +24,6 @@ void main() {
 
     expect(find.text('Delivered'), findsWidgets);
     expect(find.text('Tracking timeline'), findsOneWidget);
+    expect(find.textContaining('Resolved: Royal Mail'), findsOneWidget);
   });
 }

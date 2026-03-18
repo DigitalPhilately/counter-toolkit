@@ -174,7 +174,7 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'The first working slice is now in place: a Track & Trace flow with a clean service boundary, mock results, and room for a real provider-backed backend.',
+            'The first working slice is now in place: a Track & Trace flow with provider-aware routing, mock results, and a clean seam for a real backend.',
             style: textTheme.bodyLarge?.copyWith(
               color: const Color(0xFFD7E3DE),
               height: 1.55,

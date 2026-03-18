@@ -13,6 +13,7 @@ class TrackingLookupPage extends StatefulWidget {
 
 class _TrackingLookupPageState extends State<TrackingLookupPage> {
   late final TextEditingController _controller;
+  TrackingLookupMode _selectedMode = TrackingLookupMode.auto;
   bool _isLoading = false;
   String? _inputError;
   TrackingLookupOutcome? _outcome;
@@ -53,7 +54,9 @@ class _TrackingLookupPageState extends State<TrackingLookupPage> {
       _inputError = null;
     });
 
-    final outcome = await widget.service.lookup(normalised);
+    final outcome = await widget.service.lookup(
+      TrackingLookupRequest(reference: normalised, mode: _selectedMode),
+    );
     if (!mounted) {
       return;
     }
@@ -100,10 +103,17 @@ class _TrackingLookupPageState extends State<TrackingLookupPage> {
                         _LookupPanel(
                           controller: _controller,
                           sampleReferences: widget.service.sampleReferences,
+                          supportedModes: widget.service.supportedModes,
+                          selectedMode: _selectedMode,
                           isLoading: _isLoading,
                           inputError: _inputError,
                           onSubmit: _runLookup,
                           onLoadSample: _loadSample,
+                          onModeChanged: (mode) {
+                            setState(() {
+                              _selectedMode = mode;
+                            });
+                          },
                         ),
                         const SizedBox(height: 20),
                         if (_outcome == null)
@@ -113,7 +123,9 @@ class _TrackingLookupPageState extends State<TrackingLookupPage> {
                         else
                           _NotFoundPanel(outcome: _outcome!),
                         const SizedBox(height: 20),
-                        const _IntegrationNotesPanel(),
+                        _IntegrationNotesPanel(
+                          providerGuides: widget.service.providerGuides,
+                        ),
                       ],
                     ),
                   ),
@@ -172,7 +184,7 @@ class _PageHeader extends StatelessWidget {
                 foreground: Color(0xFF251506),
               ),
               _HeaderChip(
-                label: 'API-ready service seam',
+                label: 'Provider-aware routing',
                 background: Color(0x24FFFFFF),
                 foreground: Color(0xFFF8F4EC),
               ),
@@ -188,7 +200,7 @@ class _PageHeader extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'This screen is wired to a mock tracking service now, with the data model and lookup boundary ready for a real backend later.',
+            'This screen now supports auto-routing and provider-specific demo modes, with the lookup boundary ready for a real backend later.',
             style: textTheme.titleLarge?.copyWith(
               color: const Color(0xFFE4EEE8),
               height: 1.35,
@@ -204,18 +216,24 @@ class _LookupPanel extends StatelessWidget {
   const _LookupPanel({
     required this.controller,
     required this.sampleReferences,
+    required this.supportedModes,
+    required this.selectedMode,
     required this.isLoading,
     required this.inputError,
     required this.onSubmit,
     required this.onLoadSample,
+    required this.onModeChanged,
   });
 
   final TextEditingController controller;
   final List<String> sampleReferences;
+  final List<TrackingLookupMode> supportedModes;
+  final TrackingLookupMode selectedMode;
   final bool isLoading;
   final String? inputError;
   final Future<void> Function([String? overrideReference]) onSubmit;
   final ValueChanged<String> onLoadSample;
+  final ValueChanged<TrackingLookupMode> onModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -257,8 +275,35 @@ class _LookupPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Start with a sample number or paste a real one later. The service boundary is already separated from the UI.',
+            'Start with a sample number or paste a real one later. Choose Auto route or lock the lookup to a specific provider path.',
             style: textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFF5B6563),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Route mode',
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: supportedModes
+                .map(
+                  (mode) => ChoiceChip(
+                    label: Text(trackingLookupModeLabel(mode)),
+                    selected: mode == selectedMode,
+                    onSelected: (_) => onModeChanged(mode),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            trackingLookupModeDescription(selectedMode),
+            style: textTheme.bodyMedium?.copyWith(
               color: const Color(0xFF5B6563),
               height: 1.45,
             ),
@@ -395,6 +440,8 @@ class _NotFoundPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _RouteBanner(route: outcome.route),
+          const SizedBox(height: 18),
           Text(
             'No stored journey for ${outcome.searchedReference}',
             style: Theme.of(
@@ -502,6 +549,8 @@ class _SummaryColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _RouteBanner(route: outcome.route, compact: true),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
@@ -712,7 +761,9 @@ class _TimelineEvent extends StatelessWidget {
 }
 
 class _IntegrationNotesPanel extends StatelessWidget {
-  const _IntegrationNotesPanel();
+  const _IntegrationNotesPanel({required this.providerGuides});
+
+  final List<TrackingProviderGuide> providerGuides;
 
   @override
   Widget build(BuildContext context) {
@@ -739,6 +790,14 @@ class _IntegrationNotesPanel extends StatelessWidget {
             title: 'Provider swap point',
             body:
                 'Replace MockTrackingService with a backend-backed service that maps Royal Mail or UPU responses into TrackingItem and TrackingEvent.',
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 14,
+            runSpacing: 14,
+            children: providerGuides
+                .map((guide) => _ProviderGuideCard(guide: guide))
+                .toList(growable: false),
           ),
           const SizedBox(height: 14),
           const _InfoBanner(
@@ -776,6 +835,73 @@ class _ContentShell extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+class _RouteBanner extends StatelessWidget {
+  const _RouteBanner({required this.route, this.compact = false});
+
+  final TrackingLookupRoute route;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final readinessColor = _readinessColor(route.readiness);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(compact ? 16 : 18),
+      decoration: BoxDecoration(
+        color: readinessColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: readinessColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _TinyStatusPill(
+                label:
+                    'Requested: ${trackingLookupModeLabel(route.requestedMode)}',
+                color: const Color(0xFF0F5B57),
+              ),
+              _TinyStatusPill(
+                label:
+                    'Resolved: ${trackingLookupModeLabel(route.resolvedMode)}',
+                color: readinessColor,
+              ),
+              _TinyStatusPill(
+                label:
+                    'State: ${trackingIntegrationReadinessLabel(route.readiness)}',
+                color: readinessColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            route.reason,
+            style: textTheme.bodyLarge?.copyWith(
+              color: const Color(0xFF425150),
+              height: 1.45,
+            ),
+          ),
+          if (!compact) ...[
+            const SizedBox(height: 10),
+            Text(
+              trackingIntegrationReadinessDescription(route.readiness),
+              style: textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF5B6563),
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -840,6 +966,62 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
+class _ProviderGuideCard extends StatelessWidget {
+  const _ProviderGuideCard({required this.guide});
+
+  final TrackingProviderGuide guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final readinessColor = _readinessColor(guide.readiness);
+
+    return SizedBox(
+      width: 240,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE3DDD4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TinyStatusPill(
+              label: trackingIntegrationReadinessLabel(guide.readiness),
+              color: readinessColor,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              guide.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              guide.summary,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF5B6563),
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              guide.focus,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF0F5B57),
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _HeaderChip extends StatelessWidget {
   const _HeaderChip({
     required this.label,
@@ -864,6 +1046,31 @@ class _HeaderChip extends StatelessWidget {
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _TinyStatusPill extends StatelessWidget {
+  const _TinyStatusPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -992,6 +1199,17 @@ Color _stageColor(TrackingStage stage) {
       return const Color(0xFFB0653B);
     case TrackingStage.issue:
       return const Color(0xFF9C3D2A);
+  }
+}
+
+Color _readinessColor(TrackingIntegrationReadiness readiness) {
+  switch (readiness) {
+    case TrackingIntegrationReadiness.demoReady:
+      return const Color(0xFF2F7B4A);
+    case TrackingIntegrationReadiness.backendNext:
+      return const Color(0xFF0F5B57);
+    case TrackingIntegrationReadiness.accessControlled:
+      return const Color(0xFFB0653B);
   }
 }
 

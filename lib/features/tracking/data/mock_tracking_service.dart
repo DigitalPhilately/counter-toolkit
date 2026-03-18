@@ -138,30 +138,156 @@ class MockTrackingService extends TrackingService {
   List<String> get sampleReferences => List.unmodifiable(_sampleReferences);
 
   @override
-  Future<TrackingLookupOutcome> lookup(String reference) async {
-    final normalised = normaliseTrackingReference(reference);
+  List<TrackingLookupMode> get supportedModes =>
+      List.unmodifiable(trackingLookupModes);
+
+  @override
+  List<TrackingProviderGuide> get providerGuides =>
+      List.unmodifiable(defaultTrackingProviderGuides);
+
+  @override
+  Future<TrackingLookupOutcome> lookup(TrackingLookupRequest request) async {
+    final normalised = normaliseTrackingReference(request.reference);
 
     await Future<void>.delayed(const Duration(milliseconds: 650));
 
-    final item = _fixtures[normalised];
-    if (item != null) {
+    final fixture = _fixtures[normalised];
+    final route = _resolveRoute(normalised, request.mode, fixture: fixture);
+
+    if (fixture != null) {
+      final fixtureMode = trackingLookupModeForNetwork(fixture.network);
+
+      if (request.mode != TrackingLookupMode.auto &&
+          request.mode != fixtureMode) {
+        return TrackingLookupOutcome(
+          searchedReference: normalised,
+          route: route,
+          message:
+              'This reference is stored in the demo set, but it belongs to ${trackingLookupModeLabel(fixtureMode)}. Try Auto route or switch provider.',
+          fromMockService: true,
+        );
+      }
+
       return TrackingLookupOutcome(
         searchedReference: normalised,
-        item: item,
-        message:
-            'Mock journey loaded. Replace this service with a backend adapter when provider credentials are ready.',
+        route: TrackingLookupRoute(
+          requestedMode: request.mode,
+          resolvedMode: fixtureMode,
+          reason: request.mode == TrackingLookupMode.auto
+              ? 'Auto route matched a stored ${trackingLookupModeLabel(fixtureMode)} demo journey.'
+              : '${trackingLookupModeLabel(fixtureMode)} route selected explicitly for this lookup.',
+          readiness: trackingIntegrationReadinessForMode(fixtureMode),
+        ),
+        item: fixture,
+        message: _successMessageForMode(fixtureMode),
         fromMockService: true,
       );
     }
 
-    final message = looksLikeS10Reference(normalised)
-        ? 'This looks like an S10-style postal reference. It is a good candidate for a future UPU or operator-backed lookup.'
-        : 'No mock journey is stored for this number yet. The UI is ready for a live backend next.';
-
     return TrackingLookupOutcome(
       searchedReference: normalised,
-      message: message,
+      route: route,
+      message: _notFoundMessageForRoute(normalised, route),
       fromMockService: true,
     );
+  }
+
+  TrackingLookupRoute _resolveRoute(
+    String reference,
+    TrackingLookupMode requestedMode, {
+    TrackingItem? fixture,
+  }) {
+    if (fixture != null) {
+      final fixtureMode = trackingLookupModeForNetwork(fixture.network);
+
+      if (requestedMode == TrackingLookupMode.auto) {
+        return TrackingLookupRoute(
+          requestedMode: requestedMode,
+          resolvedMode: fixtureMode,
+          reason:
+              'Auto route matched the demo journey already stored for this reference.',
+          readiness: trackingIntegrationReadinessForMode(fixtureMode),
+        );
+      }
+
+      return TrackingLookupRoute(
+        requestedMode: requestedMode,
+        resolvedMode: requestedMode,
+        reason:
+            '${trackingLookupModeLabel(requestedMode)} route selected by the clerk for this lookup.',
+        readiness: trackingIntegrationReadinessForMode(requestedMode),
+      );
+    }
+
+    if (requestedMode != TrackingLookupMode.auto) {
+      return TrackingLookupRoute(
+        requestedMode: requestedMode,
+        resolvedMode: requestedMode,
+        reason:
+            '${trackingLookupModeLabel(requestedMode)} route selected by the clerk for this lookup.',
+        readiness: trackingIntegrationReadinessForMode(requestedMode),
+      );
+    }
+
+    final inferredMode = _inferModeFromReference(reference);
+    return TrackingLookupRoute(
+      requestedMode: requestedMode,
+      resolvedMode: inferredMode,
+      reason: _autoRouteReason(reference, inferredMode),
+      readiness: trackingIntegrationReadinessForMode(inferredMode),
+    );
+  }
+
+  TrackingLookupMode _inferModeFromReference(String reference) {
+    if (looksLikeS10Reference(reference)) {
+      return TrackingLookupMode.upu;
+    }
+    if (reference.startsWith('CD') || reference.startsWith('PF')) {
+      return TrackingLookupMode.parcelForce;
+    }
+    return TrackingLookupMode.royalMail;
+  }
+
+  String _autoRouteReason(String reference, TrackingLookupMode inferredMode) {
+    switch (inferredMode) {
+      case TrackingLookupMode.auto:
+        return 'Auto route is waiting for more information.';
+      case TrackingLookupMode.royalMail:
+        return 'No stronger pattern matched, so the lookup falls back to a Royal Mail-style route first.';
+      case TrackingLookupMode.parcelForce:
+        return 'The reference shape matches the Parcelforce-style demo path used in this prototype.';
+      case TrackingLookupMode.upu:
+        return looksLikeS10Reference(reference)
+            ? 'This looks like an S10-style postal reference, so auto route points it toward the international postal path.'
+            : 'Auto route chose the UPU-style path for an international-style reference.';
+    }
+  }
+
+  String _successMessageForMode(TrackingLookupMode mode) {
+    switch (mode) {
+      case TrackingLookupMode.auto:
+        return 'Mock journey loaded.';
+      case TrackingLookupMode.royalMail:
+        return 'Royal Mail-style demo journey loaded. Replace this service with a backend adapter when server credentials are ready.';
+      case TrackingLookupMode.parcelForce:
+        return 'Parcelforce-style demo journey loaded. The UI is ready for a provider-specific backend adapter next.';
+      case TrackingLookupMode.upu:
+        return 'UPU-style demo journey loaded. Keep the live integration behind your backend once access is approved.';
+    }
+  }
+
+  String _notFoundMessageForRoute(String reference, TrackingLookupRoute route) {
+    switch (route.resolvedMode) {
+      case TrackingLookupMode.auto:
+        return 'The route has not been resolved yet.';
+      case TrackingLookupMode.royalMail:
+        return 'No mock Royal Mail journey is stored for this number yet. The screen is ready for a backend-backed lookup next.';
+      case TrackingLookupMode.parcelForce:
+        return 'No mock Parcelforce journey is stored for this number yet. Keep the same UI and swap in a provider adapter later.';
+      case TrackingLookupMode.upu:
+        return looksLikeS10Reference(reference)
+            ? 'This looks like an S10-style postal reference. It is a strong candidate for a future UPU or operator-backed lookup.'
+            : 'No mock international postal journey is stored for this number yet.';
+    }
   }
 }
