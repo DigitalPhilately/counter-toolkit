@@ -1,15 +1,27 @@
+import 'package:counter_toolkit/app/counter_toolkit_app.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:counter_toolkit/main.dart';
-
 void main() {
-  testWidgets('renders the Counter Toolkit dashboard', (
+  testWidgets('opens track and trace and shows a sample result', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CounterToolkitApp());
 
-    expect(find.text('Counter Toolkit'), findsOneWidget);
-    expect(find.text('Track & Trace'), findsOneWidget);
-    expect(find.text('What the app should help with first'), findsOneWidget);
+    expect(find.text('Open Track & Trace'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Open Track & Trace'));
+    await tester.tap(find.text('Open Track & Trace'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Track & Trace'), findsWidgets);
+    expect(find.text('Search by tracking reference'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Look up'));
+    await tester.tap(find.text('Look up'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.text('Delivered'), findsWidgets);
+    expect(find.text('Tracking timeline'), findsOneWidget);
   });
 }
