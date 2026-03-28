@@ -18,8 +18,8 @@ class StampPickTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = SizedBox(
-      width: compact ? 118 : 142,
-      height: compact ? 156 : 188,
+      width: compact ? 120 : 150,
+      height: compact ? 142 : 178,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -41,12 +41,12 @@ class StampPickTile extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      flex: 64,
+                      flex: 66,
                       child: _StampFace(item: item, compact: compact),
                     ),
                     const _PerforationBridge(),
                     Expanded(
-                      flex: 24,
+                      flex: 22,
                       child: _BarcodeStrip(seed: item.stamp.label),
                     ),
                   ],
@@ -155,7 +155,7 @@ class _StampFace extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.98),
-                  fontSize: compact ? 27 : 32,
+                  fontSize: compact ? 24 : 30,
                   fontWeight: FontWeight.w700,
                   height: 0.95,
                   letterSpacing: -0.6,
@@ -183,7 +183,7 @@ class _PerforationBridge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 12,
+      width: 10,
       child: DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFFF8F5F0)),
         child: CustomPaint(painter: const _PerforationBridgePainter()),

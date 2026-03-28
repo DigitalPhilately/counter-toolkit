@@ -3,6 +3,8 @@ import 'package:counter_toolkit/features/stamps/domain/stamp_models.dart';
 import 'package:counter_toolkit/features/stamps/presentation/stamp_tile.dart';
 import 'package:flutter/material.dart';
 
+enum _AmountEntryMode { pounds, pence }
+
 class StampCalculatorPage extends StatefulWidget {
   const StampCalculatorPage({super.key, required this.solver});
 
@@ -15,6 +17,7 @@ class StampCalculatorPage extends StatefulWidget {
 class _StampCalculatorPageState extends State<StampCalculatorPage> {
   late final TextEditingController _targetController;
   StampCalculatorSettings _settings = const StampCalculatorSettings();
+  _AmountEntryMode _amountEntryMode = _AmountEntryMode.pounds;
   final Set<int> _pickedValues = <int>{};
   StampCalculationResult? _result;
   String? _inputError;
@@ -33,10 +36,15 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _recalculate() {
-    final targetValuePence = _parseTargetValue(_targetController.text);
+    final targetValuePence = _parseTargetValue(
+      _targetController.text,
+      _amountEntryMode,
+    );
     if (targetValuePence == null) {
       setState(() {
-        _inputError = 'Use a value like 10.25 or 1025.';
+        _inputError = _amountEntryMode == _AmountEntryMode.pounds
+            ? 'Enter pounds like 10.25.'
+            : 'Enter whole pence like 1025.';
       });
       return;
     }
@@ -51,13 +59,16 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
     });
   }
 
-  int? _parseTargetValue(String raw) {
-    final cleaned = raw.trim().replaceAll('£', '');
+  int? _parseTargetValue(String raw, _AmountEntryMode mode) {
+    final cleaned = raw.trim().replaceAll('£', '').replaceAll('p', '');
     if (cleaned.isEmpty) {
       return null;
     }
 
-    if (RegExp(r'^\d+$').hasMatch(cleaned)) {
+    if (mode == _AmountEntryMode.pence) {
+      if (!RegExp(r'^\d+$').hasMatch(cleaned)) {
+        return null;
+      }
       return int.tryParse(cleaned);
     }
 
@@ -70,6 +81,45 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
     }
 
     return null;
+  }
+
+  void _setAmountEntryMode(_AmountEntryMode mode) {
+    if (_amountEntryMode == mode) {
+      return;
+    }
+
+    final currentValue = _parseTargetValue(
+      _targetController.text,
+      _amountEntryMode,
+    );
+    setState(() {
+      _amountEntryMode = mode;
+      if (currentValue != null) {
+        _targetController.text = _formatInputForMode(currentValue, mode);
+      }
+    });
+    _recalculate();
+  }
+
+  String _formatInputForMode(int valuePence, _AmountEntryMode mode) {
+    if (mode == _AmountEntryMode.pence) {
+      return '$valuePence';
+    }
+
+    final pounds = valuePence ~/ 100;
+    final pence = valuePence % 100;
+    if (pence == 0) {
+      return '$pounds';
+    }
+    return '$pounds.${pence.toString().padLeft(2, '0')}';
+  }
+
+  void _handleAmountChanged(String value) {
+    setState(() {
+      if (_inputError != null) {
+        _inputError = null;
+      }
+    });
   }
 
   void _togglePreferNvi(bool value) {
@@ -117,6 +167,46 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
       _settings = _settings.copyWith(excludedValues: <int>{});
     });
     _recalculate();
+  }
+
+  Future<void> _openSetupSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFF8F4EC),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, refreshSheet) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: _SetupSheetContent(
+                  settings: _settings,
+                  catalog: widget.solver.catalog,
+                  onPreferNviChanged: (value) {
+                    _togglePreferNvi(value);
+                    refreshSheet(() {});
+                  },
+                  onHighTariffChanged: (value) {
+                    _toggleHighTariff(value);
+                    refreshSheet(() {});
+                  },
+                  onClearExclusions: () {
+                    _clearExclusions();
+                    refreshSheet(() {});
+                  },
+                  onToggleExcluded: (value, excluded) {
+                    _setExcludedValue(value, excluded);
+                    refreshSheet(() {});
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _openStampDetails(StampLineItem item) async {
@@ -238,6 +328,10 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   @override
   Widget build(BuildContext context) {
     final result = _result;
+    final parsedPreviewValue = _parseTargetValue(
+      _targetController.text,
+      _amountEntryMode,
+    );
 
     return Scaffold(
       body: DecoratedBox(
@@ -261,12 +355,13 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
                     _HeaderPanel(
                       controller: _targetController,
                       inputError: _inputError,
-                      settings: _settings,
+                      amountEntryMode: _amountEntryMode,
+                      parsedPreviewValue: parsedPreviewValue,
                       onBack: () => Navigator.of(context).pop(),
+                      onAmountChanged: _handleAmountChanged,
                       onRecalculate: _recalculate,
-                      onPreferNviChanged: _togglePreferNvi,
-                      onHighTariffChanged: _toggleHighTariff,
-                      onClearExclusions: _clearExclusions,
+                      onAmountEntryModeChanged: _setAmountEntryMode,
+                      onOpenSetup: _openSetupSheet,
                     ),
                     const SizedBox(height: 20),
                     AnimatedSwitcher(
@@ -279,10 +374,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
                           ? _SolutionView(
                               key: ValueKey(result.recommended?.signature),
                               result: result,
-                              pickedValues: _pickedValues,
                               onStampTap: _openStampDetails,
-                              onClearExcluded: (value) =>
-                                  _setExcludedValue(value, false),
                             )
                           : _NoSolutionView(
                               key: ValueKey(result.message),
@@ -307,59 +399,37 @@ class _HeaderPanel extends StatelessWidget {
   const _HeaderPanel({
     required this.controller,
     required this.inputError,
-    required this.settings,
+    required this.amountEntryMode,
+    required this.parsedPreviewValue,
     required this.onBack,
+    required this.onAmountChanged,
     required this.onRecalculate,
-    required this.onPreferNviChanged,
-    required this.onHighTariffChanged,
-    required this.onClearExclusions,
+    required this.onAmountEntryModeChanged,
+    required this.onOpenSetup,
   });
 
   final TextEditingController controller;
   final String? inputError;
-  final StampCalculatorSettings settings;
+  final _AmountEntryMode amountEntryMode;
+  final int? parsedPreviewValue;
   final VoidCallback onBack;
+  final ValueChanged<String> onAmountChanged;
   final VoidCallback onRecalculate;
-  final ValueChanged<bool> onPreferNviChanged;
-  final ValueChanged<bool> onHighTariffChanged;
-  final VoidCallback onClearExclusions;
+  final ValueChanged<_AmountEntryMode> onAmountEntryModeChanged;
+  final VoidCallback onOpenSetup;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final chips = <Widget>[
-      _StatusChip(
-        label: settings.preferNvi ? 'Prefer NVI' : 'NVI neutral',
-        accent: const Color(0xFFF0C177),
-        foreground: const Color(0xFF251506),
-      ),
-      _StatusChip(
-        label: settings.excludeHighTariff
-            ? 'No high tariff'
-            : 'High tariff allowed',
-        accent: settings.excludeHighTariff
-            ? const Color(0x24FFFFFF)
-            : const Color(0xFFDFEAD9),
-        foreground: const Color(0xFFF8F4EC),
-      ),
-      const _StatusChip(
-        label: 'Keep £3.40 available',
-        accent: Color(0x24FFFFFF),
-        foreground: Color(0xFFF8F4EC),
-      ),
-      ...settings.excludedValues.map(
-        (value) => InputChip(
-          label: Text('Excluded ${formatPenceAsCurrency(value)}'),
-          onDeleted: onClearExclusions,
-          deleteIconColor: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.14),
-          labelStyle: textTheme.labelLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    ];
+    final helperText = amountEntryMode == _AmountEntryMode.pounds
+        ? 'Enter pounds and pence, for example 10.25.'
+        : 'Enter whole pence, for example 1025.';
+    final hintText = amountEntryMode == _AmountEntryMode.pounds
+        ? '10.25'
+        : '1025';
+    final amountPreview = parsedPreviewValue == null
+        ? null
+        : 'Calculating ${formatPenceAsCurrency(parsedPreviewValue!)}';
 
     return Container(
       width: double.infinity,
@@ -378,16 +448,28 @@ class _HeaderPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton.filledTonal(
-            onPressed: onBack,
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.12),
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.arrow_back_rounded),
+          Row(
+            children: [
+              IconButton.filledTonal(
+                onPressed: onBack,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: onOpenSetup,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0C177),
+                  foregroundColor: const Color(0xFF251506),
+                ),
+                icon: const Icon(Icons.tune_rounded),
+                label: const Text('Setup & stock'),
+              ),
+            ],
           ),
-          const SizedBox(height: 18),
-          Wrap(spacing: 10, runSpacing: 10, children: chips),
           const SizedBox(height: 18),
           Text(
             'Best Fit Stamps',
@@ -398,7 +480,7 @@ class _HeaderPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'A constrained optimisation engine built around how a clerk actually picks stamps from a physical book.',
+            'Enter the postage needed and the app will show the quickest exact stamp pick. Counter defaults and stock live in Setup & stock.',
             style: textTheme.titleLarge?.copyWith(
               color: const Color(0xFFECE2D7),
               height: 1.35,
@@ -414,28 +496,101 @@ class _HeaderPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Required amount',
+                      'Required postage',
                       style: textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: controller,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                    SegmentedButton<_AmountEntryMode>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment<_AmountEntryMode>(
+                          value: _AmountEntryMode.pounds,
+                          label: Text('Pounds'),
+                          icon: Icon(Icons.currency_pound_rounded),
+                        ),
+                        ButtonSegment<_AmountEntryMode>(
+                          value: _AmountEntryMode.pence,
+                          label: Text('Pence'),
+                          icon: Icon(Icons.pin_outlined),
+                        ),
+                      ],
+                      selected: <_AmountEntryMode>{amountEntryMode},
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith((
+                          states,
+                        ) {
+                          return states.contains(WidgetState.selected)
+                              ? const Color(0xFFF0C177)
+                              : Colors.white.withValues(alpha: 0.08);
+                        }),
+                        foregroundColor: WidgetStateProperty.resolveWith((
+                          states,
+                        ) {
+                          return states.contains(WidgetState.selected)
+                              ? const Color(0xFF251506)
+                              : Colors.white;
+                        }),
+                        side: WidgetStateProperty.all(
+                          BorderSide(
+                            color: Colors.white.withValues(alpha: 0.14),
+                          ),
+                        ),
+                        textStyle: WidgetStateProperty.all(
+                          const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
+                      onSelectionChanged: (selection) {
+                        onAmountEntryModeChanged(selection.first);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      key: const ValueKey('target-amount-field'),
+                      controller: controller,
+                      keyboardType: amountEntryMode == _AmountEntryMode.pounds
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.number,
+                      onChanged: onAmountChanged,
                       onSubmitted: (_) => onRecalculate(),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: '10.25 or 1025',
+                        labelText: amountEntryMode == _AmountEntryMode.pounds
+                            ? 'Amount in pounds'
+                            : 'Amount in pence',
+                        hintText: hintText,
                         errorText: inputError,
+                        helperText: inputError == null ? helperText : null,
+                        helperStyle: const TextStyle(
+                          color: Color(0xFFD0C2B4),
+                          height: 1.35,
+                        ),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.08),
+                        prefixText: amountEntryMode == _AmountEntryMode.pounds
+                            ? '£'
+                            : null,
+                        suffixText: amountEntryMode == _AmountEntryMode.pence
+                            ? 'p'
+                            : null,
+                        labelStyle: const TextStyle(color: Color(0xFFECE2D7)),
                         hintStyle: const TextStyle(color: Color(0xFFD0C2B4)),
+                        prefixStyle: const TextStyle(color: Colors.white),
+                        suffixStyle: const TextStyle(color: Colors.white),
                       ),
                     ),
+                    if (amountPreview != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        amountPreview,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFF0C177),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       onPressed: onRecalculate,
@@ -450,32 +605,37 @@ class _HeaderPanel extends StatelessWidget {
                 ),
               );
 
-              final togglePanel = _ControlShell(
+              final guidancePanel = _ControlShell(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Counter toggles',
+                      'How this screen works',
                       style: textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _SettingToggle(
-                      title: 'Prefer NVI',
-                      subtitle:
-                          'Soft preference in ranking, not a hard filter.',
-                      value: settings.preferNvi,
-                      onChanged: onPreferNviChanged,
+                    const _HeaderNote(
+                      icon: Icons.looks_one_rounded,
+                      title: 'One clear setup area',
+                      body:
+                          'All stock and ranking preferences now live behind Setup & stock so the main screen stays focused.',
                     ),
                     const SizedBox(height: 12),
-                    _SettingToggle(
-                      title: 'No High Tariff',
-                      subtitle:
-                          'Exclude £4.30 and £3.50 while still allowing £3.40.',
-                      value: settings.excludeHighTariff,
-                      onChanged: onHighTariffChanged,
+                    const _HeaderNote(
+                      icon: Icons.sell_outlined,
+                      title: 'Counter-ready output',
+                      body:
+                          'Recommended stamps are grouped by value, with the fastest exact pick ranked first.',
+                    ),
+                    const SizedBox(height: 12),
+                    const _HeaderNote(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Stock changes recalculate instantly',
+                      body:
+                          'If a stamp is missing from the book, mark it out of stock in Setup and the combinations update immediately.',
                     ),
                   ],
                 ),
@@ -486,7 +646,7 @@ class _HeaderPanel extends StatelessWidget {
                   children: [
                     amountPanel,
                     const SizedBox(height: 16),
-                    togglePanel,
+                    guidancePanel,
                   ],
                 );
               }
@@ -496,7 +656,7 @@ class _HeaderPanel extends StatelessWidget {
                 children: [
                   Expanded(child: amountPanel),
                   const SizedBox(width: 16),
-                  Expanded(child: togglePanel),
+                  Expanded(child: guidancePanel),
                 ],
               );
             },
@@ -511,15 +671,11 @@ class _SolutionView extends StatelessWidget {
   const _SolutionView({
     super.key,
     required this.result,
-    required this.pickedValues,
     required this.onStampTap,
-    required this.onClearExcluded,
   });
 
   final StampCalculationResult result;
-  final Set<int> pickedValues;
   final ValueChanged<StampLineItem> onStampTap;
-  final ValueChanged<int> onClearExcluded;
 
   @override
   Widget build(BuildContext context) {
@@ -603,57 +759,18 @@ class _SolutionView extends StatelessWidget {
                   .toList(growable: false),
             ),
           ),
-        if (result.settings.excludedValues.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          _SectionPanel(
-            eyebrow: 'Live exclusions',
-            title: 'Current not-available list',
-            description:
-                'Tap the close icon to put a stamp back into the calculation.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: result.settings.excludedValues
-                  .map(
-                    (value) => InputChip(
-                      label: Text(formatPenceAsCurrency(value)),
-                      onDeleted: () => onClearExcluded(value),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ),
-        ],
         const SizedBox(height: 20),
         _SectionPanel(
-          eyebrow: 'Shelf preview',
-          title: 'What is currently on the book',
+          eyebrow: 'Counter note',
+          title: 'Setup stays in the background',
           description:
-              'A quick visual shelf of the active stamp values after the current toggles and exclusions.',
-          child: _StampTray(
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: result.availableStamps
-                  .map(
-                    (stamp) => StampPickTile(
-                      item: StampLineItem(
-                        stamp: stamp,
-                        count: 1,
-                        isPicked: pickedValues.contains(stamp.valuePence),
-                      ),
-                      compact: true,
-                      onTap: () => onStampTap(
-                        StampLineItem(
-                          stamp: stamp,
-                          count: 1,
-                          isPicked: pickedValues.contains(stamp.valuePence),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
+              'Use Setup & stock for availability and ranking preferences. The main screen now stays focused on the pick itself.',
+          child: _SupportNote(
+            icon: Icons.tune_rounded,
+            title: 'One set of controls',
+            body: result.settings.excludedValues.isEmpty
+                ? 'Nothing is currently marked out of stock.'
+                : '${result.settings.excludedValues.length} stamp value${result.settings.excludedValues.length == 1 ? ' is' : 's are'} marked out of stock in Setup & stock.',
           ),
         ),
       ],
@@ -694,6 +811,155 @@ class _NoSolutionView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SetupSheetContent extends StatelessWidget {
+  const _SetupSheetContent({
+    required this.settings,
+    required this.catalog,
+    required this.onPreferNviChanged,
+    required this.onHighTariffChanged,
+    required this.onClearExclusions,
+    required this.onToggleExcluded,
+  });
+
+  final StampCalculatorSettings settings;
+  final List<StampDefinition> catalog;
+  final ValueChanged<bool> onPreferNviChanged;
+  final ValueChanged<bool> onHighTariffChanged;
+  final VoidCallback onClearExclusions;
+  final void Function(int value, bool excluded) onToggleExcluded;
+
+  @override
+  Widget build(BuildContext context) {
+    final excludedCount = settings.excludedValues.length;
+    final inStockCount = catalog.length - excludedCount;
+    final stockSummary = excludedCount == 0
+        ? 'No stamp values marked out of stock.'
+        : '$excludedCount value${excludedCount == 1 ? '' : 's'} marked out of stock.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Setup & stock',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            FilledButton.tonal(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Keep stock and ranking preferences here so the main screen stays focused on the pick itself.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: const Color(0xFF5B6563),
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE2DBCF)),
+          ),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _MetricPill(
+                label:
+                    '$inStockCount value${inStockCount == 1 ? '' : 's'} currently in stock',
+              ),
+              _MetricPill(label: stockSummary),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        _SheetSectionCard(
+          title: 'Counter defaults',
+          description:
+              'These are the only live toggles for ranking and high-tariff filtering.',
+          child: Column(
+            children: [
+              _SettingToggle(
+                title: 'Prefer NVI',
+                subtitle: 'Soft preference in ranking, not a hard filter.',
+                value: settings.preferNvi,
+                onChanged: onPreferNviChanged,
+              ),
+              const SizedBox(height: 12),
+              _SettingToggle(
+                title: 'No high tariff',
+                subtitle:
+                    'Hide £4.30 and £3.50 from the solver while still allowing £3.40.',
+                value: settings.excludeHighTariff,
+                onChanged: onHighTariffChanged,
+              ),
+              const SizedBox(height: 14),
+              const _SheetHint(
+                icon: Icons.info_outline_rounded,
+                text:
+                    'Stock and tariff filtering are separate. A high-value stamp can be in stock here and still be hidden by the No high tariff toggle.',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        _SheetSectionCard(
+          title: 'Stamp book stock',
+          description:
+              'Tap a stamp to mark it in stock or out of stock. Every change recalculates immediately.',
+          trailing: excludedCount == 0
+              ? null
+              : TextButton.icon(
+                  onPressed: onClearExclusions,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: const Text('Reset stock'),
+                ),
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 18,
+            children: catalog
+                .map(
+                  (stamp) => _StockTileButton(
+                    stamp: stamp,
+                    excluded: settings.excludedValues.contains(
+                      stamp.valuePence,
+                    ),
+                    filterNote:
+                        settings.excludeHighTariff &&
+                            stamp.isHighTariff &&
+                            !settings.availableTariffValues.contains(
+                              stamp.valuePence,
+                            )
+                        ? 'Hidden by No high tariff'
+                        : null,
+                    onTap: () {
+                      final excluded = settings.excludedValues.contains(
+                        stamp.valuePence,
+                      );
+                      onToggleExcluded(stamp.valuePence, !excluded);
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -743,6 +1009,108 @@ class _AlternativeCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StockTileButton extends StatelessWidget {
+  const _StockTileButton({
+    required this.stamp,
+    required this.excluded,
+    required this.onTap,
+    this.filterNote,
+  });
+
+  final StampDefinition stamp;
+  final bool excluded;
+  final VoidCallback onTap;
+  final String? filterNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = excluded
+        ? const Color(0xFF9C3D2A)
+        : const Color(0xFF0F5B57);
+
+    return SizedBox(
+      width: 132,
+      child: InkWell(
+        key: ValueKey('stock-tile-${stamp.valuePence}'),
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  opacity: excluded ? 0.42 : 1,
+                  child: StampPickTile(
+                    item: StampLineItem(stamp: stamp, count: 1),
+                    compact: true,
+                  ),
+                ),
+                if (excluded)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.58),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF9C3D2A),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Out of stock',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              stamp.label,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              excluded ? 'Out of stock' : 'In stock',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: statusColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (filterNote != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                filterNote!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF7B6C59),
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -843,6 +1211,68 @@ class _StampTray extends StatelessWidget {
   }
 }
 
+class _HeaderNote extends StatelessWidget {
+  const _HeaderNote({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0C177),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: const Color(0xFF251506), size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFE6D8CA),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingToggle extends StatelessWidget {
   const _SettingToggle({
     required this.title,
@@ -864,8 +1294,9 @@ class _SettingToggle extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: const Color(0xFFF7F2EA),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2DBCF)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +1304,7 @@ class _SettingToggle extends StatelessWidget {
             Checkbox(
               value: value,
               onChanged: (next) => onChanged(next ?? false),
-              side: const BorderSide(color: Colors.white70),
+              side: const BorderSide(color: Color(0xFF7B6C59)),
               checkColor: const Color(0xFF251506),
               fillColor: WidgetStateProperty.resolveWith((states) {
                 return states.contains(WidgetState.selected)
@@ -889,7 +1320,6 @@ class _SettingToggle extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -897,7 +1327,7 @@ class _SettingToggle extends StatelessWidget {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFE6D8CA),
+                      color: const Color(0xFF5B6563),
                       height: 1.4,
                     ),
                   ),
@@ -906,6 +1336,67 @@ class _SettingToggle extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SheetSectionCard extends StatelessWidget {
+  const _SheetSectionCard({
+    required this.title,
+    required this.description,
+    required this.child,
+    this.trailing,
+  });
+
+  final String title;
+  final String description;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE3DDD4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF5B6563),
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 12), trailing!],
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
       ),
     );
   }
@@ -1115,36 +1606,6 @@ class _MetricPill extends StatelessWidget {
         style: Theme.of(
           context,
         ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({
-    required this.label,
-    required this.accent,
-    required this.foreground,
-  });
-
-  final String label;
-  final Color accent;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: accent,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: foreground,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }

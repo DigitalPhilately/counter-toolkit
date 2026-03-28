@@ -1,5 +1,5 @@
 import 'package:counter_toolkit/app/counter_toolkit_app.dart';
-import 'package:counter_toolkit/features/stamps/presentation/stamp_tile.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -29,29 +29,44 @@ void main() {
     expect(find.textContaining('Resolved: Royal Mail'), findsOneWidget);
   });
 
-  testWidgets('opens best fit stamps and marks a tile unavailable', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const CounterToolkitApp());
+  testWidgets(
+    'best fit stamps keeps setup separate from the main result view',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const CounterToolkitApp());
 
-    await tester.ensureVisible(find.text('Open Best Fit Stamps'));
-    await tester.tap(find.text('Open Best Fit Stamps'));
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Open Best Fit Stamps'));
+      await tester.tap(find.text('Open Best Fit Stamps'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Best Fit Stamps'), findsOneWidget);
-    expect(find.textContaining('Best fit for £10.25'), findsOneWidget);
+      expect(find.text('Best Fit Stamps'), findsOneWidget);
+      expect(find.textContaining('Best fit for £10.25'), findsOneWidget);
+      expect(find.text('Prefer NVI'), findsNothing);
+      expect(find.text('No high tariff'), findsNothing);
 
-    final firstStampTile = find.byType(StampPickTile).first;
-    await tester.ensureVisible(firstStampTile);
-    await tester.tap(firstStampTile);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Pence'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Not available'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('target-amount-field')),
+        '1025',
+      );
+      await tester.tap(find.text('Recalculate'));
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Not available'));
-    await tester.tap(find.text('Not available'));
-    await tester.pumpAndSettle();
+      expect(find.textContaining('Best fit for £10.25'), findsOneWidget);
 
-    expect(find.text('Excluded £3.40'), findsOneWidget);
-  });
+      await tester.tap(find.text('Setup & stock'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Prefer NVI'), findsOneWidget);
+      expect(find.text('No high tariff'), findsOneWidget);
+      expect(find.text('No stamp values marked out of stock.'), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const ValueKey('stock-tile-340')));
+      await tester.tap(find.byKey(const ValueKey('stock-tile-340')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 value marked out of stock.'), findsOneWidget);
+    },
+  );
 }
