@@ -1,16 +1,31 @@
+import 'package:counter_toolkit/features/stamps/domain/best_fit_stamp_solver.dart';
+import 'package:counter_toolkit/features/stamps/presentation/stamp_calculator_page.dart';
 import 'package:counter_toolkit/features/tracking/domain/tracking_service.dart';
 import 'package:counter_toolkit/features/tracking/presentation/tracking_lookup_page.dart';
 import 'package:flutter/material.dart';
 
 class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key, required this.trackingService});
+  const DashboardPage({
+    super.key,
+    required this.trackingService,
+    required this.stampSolver,
+  });
 
   final TrackingService trackingService;
+  final BestFitStampSolver stampSolver;
 
   void _openTracking(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => TrackingLookupPage(service: trackingService),
+      ),
+    );
+  }
+
+  void _openStamps(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StampCalculatorPage(solver: stampSolver),
       ),
     );
   }
@@ -52,6 +67,7 @@ class DashboardPage extends StatelessWidget {
                       children: [
                         _HeroBanner(
                           onOpenTracking: () => _openTracking(context),
+                          onOpenStamps: () => _openStamps(context),
                         ),
                         const SizedBox(height: 20),
                         if (isWide)
@@ -66,6 +82,7 @@ class DashboardPage extends StatelessWidget {
                                       columns: quickToolColumns,
                                       onOpenTracking: () =>
                                           _openTracking(context),
+                                      onOpenStamps: () => _openStamps(context),
                                     ),
                                     const SizedBox(height: 20),
                                     const _GuidingPrinciplesPanel(),
@@ -91,6 +108,7 @@ class DashboardPage extends StatelessWidget {
                               _QuickToolsPanel(
                                 columns: quickToolColumns,
                                 onOpenTracking: () => _openTracking(context),
+                                onOpenStamps: () => _openStamps(context),
                               ),
                               const SizedBox(height: 20),
                               const _ShiftEssentialsPanel(),
@@ -114,9 +132,10 @@ class DashboardPage extends StatelessWidget {
 }
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onOpenTracking});
+  const _HeroBanner({required this.onOpenTracking, required this.onOpenStamps});
 
   final VoidCallback onOpenTracking;
+  final VoidCallback onOpenStamps;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +168,7 @@ class _HeroBanner extends StatelessWidget {
                 foreground: Color(0xFFF8F4EC),
               ),
               _HeroChip(
-                label: 'Track & Trace live',
+                label: 'Two tools live',
                 background: Color(0xFFF0C177),
                 foreground: Color(0xFF251506),
               ),
@@ -174,7 +193,7 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'The first working slice is now in place: a Track & Trace flow with provider-aware routing, mock results, and a clean seam for a real backend.',
+            'The toolkit now has two live counter workflows: provider-aware Track & Trace and a colour-led best-fit stamp picker for exact postage make-up.',
             style: textTheme.bodyLarge?.copyWith(
               color: const Color(0xFFD7E3DE),
               height: 1.55,
@@ -198,7 +217,26 @@ class _HeroBanner extends StatelessWidget {
                   children: [
                     _HeroCallout(textTheme: textTheme),
                     const SizedBox(height: 14),
-                    _HeroButton(onOpenTracking: onOpenTracking),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _HeroButton(
+                          onPressed: onOpenTracking,
+                          icon: Icons.travel_explore_rounded,
+                          label: 'Open Track & Trace',
+                          background: const Color(0xFFF0C177),
+                          foreground: const Color(0xFF251506),
+                        ),
+                        _HeroButton(
+                          onPressed: onOpenStamps,
+                          icon: Icons.style_rounded,
+                          label: 'Open Best Fit Stamps',
+                          background: const Color(0xFFE6F0EC),
+                          foreground: const Color(0xFF113331),
+                        ),
+                      ],
+                    ),
                   ],
                 );
               }
@@ -207,7 +245,29 @@ class _HeroBanner extends StatelessWidget {
                 children: [
                   Expanded(child: _HeroCallout(textTheme: textTheme)),
                   const SizedBox(width: 14),
-                  _HeroButton(onOpenTracking: onOpenTracking),
+                  SizedBox(
+                    width: 270,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _HeroButton(
+                          onPressed: onOpenTracking,
+                          icon: Icons.travel_explore_rounded,
+                          label: 'Open Track & Trace',
+                          background: const Color(0xFFF0C177),
+                          foreground: const Color(0xFF251506),
+                        ),
+                        const SizedBox(height: 12),
+                        _HeroButton(
+                          onPressed: onOpenStamps,
+                          icon: Icons.style_rounded,
+                          label: 'Open Best Fit Stamps',
+                          background: const Color(0xFFE6F0EC),
+                          foreground: const Color(0xFF113331),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               );
             },
@@ -243,7 +303,7 @@ class _HeroCallout extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Open the live Track & Trace flow to preview the lookup journey we can later connect to Royal Mail or UPU-style providers.',
+              'Open the live tools to preview both parcel lookups and the exact-postage stamp picker a clerk can use mid-queue.',
               style: textTheme.bodyLarge?.copyWith(
                 color: const Color(0xFFF6F1E8),
                 fontWeight: FontWeight.w600,
@@ -258,38 +318,53 @@ class _HeroCallout extends StatelessWidget {
 }
 
 class _HeroButton extends StatelessWidget {
-  const _HeroButton({required this.onOpenTracking});
+  const _HeroButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
 
-  final VoidCallback onOpenTracking;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final Color background;
+  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
     return FilledButton.icon(
-      onPressed: onOpenTracking,
+      onPressed: onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFFF0C177),
-        foregroundColor: const Color(0xFF251506),
+        backgroundColor: background,
+        foregroundColor: foreground,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
       ),
-      icon: const Icon(Icons.travel_explore_rounded),
-      label: const Text('Open Track & Trace'),
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 }
 
 class _QuickToolsPanel extends StatelessWidget {
-  const _QuickToolsPanel({required this.columns, required this.onOpenTracking});
+  const _QuickToolsPanel({
+    required this.columns,
+    required this.onOpenTracking,
+    required this.onOpenStamps,
+  });
 
   final int columns;
   final VoidCallback onOpenTracking;
+  final VoidCallback onOpenStamps;
 
   @override
   Widget build(BuildContext context) {
     return _SurfacePanel(
       eyebrow: 'Current toolset',
-      title: 'The first workflow slice',
+      title: 'Live tools and the next queue',
       description:
-          'Track & Trace is now interactive. The other tools stay visible as the next planned work in the queue.',
+          'Track & Trace and Best Fit Stamps are both interactive now. The remaining tiles stay visible as the next planned helpers.',
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -306,7 +381,11 @@ class _QuickToolsPanel extends StatelessWidget {
         ),
         itemBuilder: (context, index) => _QuickToolCard(
           data: _quickTools[index],
-          onTap: _quickTools[index].isAvailableNow ? onOpenTracking : null,
+          onTap: switch (_quickTools[index].routeKey) {
+            'tracking' => onOpenTracking,
+            'stamps' => onOpenStamps,
+            _ => null,
+          },
         ),
       ),
     );
@@ -346,7 +425,7 @@ class _BuildRoadmapPanel extends StatelessWidget {
       eyebrow: 'Build runway',
       title: 'Suggested next milestones',
       description:
-          'Now that tracking has a working shell, the rest of the toolkit can grow around real counter-side tasks.',
+          'Now that two real tools are in place, the rest of the toolkit can grow around the same counter-side patterns.',
       child: Column(
         children: _roadmap
             .asMap()
@@ -784,6 +863,7 @@ class _QuickTool {
     required this.icon,
     required this.accent,
     required this.footerLabel,
+    this.routeKey,
     this.isAvailableNow = false,
   });
 
@@ -792,6 +872,7 @@ class _QuickTool {
   final IconData icon;
   final Color accent;
   final String footerLabel;
+  final String? routeKey;
   final bool isAvailableNow;
 }
 
@@ -832,7 +913,7 @@ class _Principle {
 
 const _heroPoints = [
   'Track & Trace working',
-  'Backend seam in place',
+  'Best Fit Stamps live',
   'Counter-first language',
 ];
 
@@ -844,6 +925,17 @@ const _quickTools = [
     icon: Icons.route_outlined,
     accent: Color(0xFF0F5B57),
     footerLabel: 'Open feature',
+    routeKey: 'tracking',
+    isAvailableNow: true,
+  ),
+  _QuickTool(
+    title: 'Best Fit Stamps',
+    subtitle:
+        'Build the quickest exact-postage pick list from the stamp book in front of you.',
+    icon: Icons.style_outlined,
+    accent: Color(0xFF8D6E63),
+    footerLabel: 'Open feature',
+    routeKey: 'stamps',
     isAvailableNow: true,
   ),
   _QuickTool(
@@ -880,11 +972,11 @@ const _essentials = [
     accent: Color(0xFF0F5B57),
   ),
   _BulletItem(
-    title: 'Keep size and weight checks visual',
+    title: 'Keep stamp picking visual',
     subtitle:
-        'Counter staff should not have to hunt through dense tables to confirm a limit.',
-    icon: Icons.inventory_2_outlined,
-    accent: Color(0xFFB0653B),
+        'Exact postage make-up should feel like a colour-led pick list, not a maths exercise.',
+    icon: Icons.style_outlined,
+    accent: Color(0xFF8D6E63),
   ),
   _BulletItem(
     title: 'Support explain-it-to-the-customer moments',
@@ -907,14 +999,14 @@ const _roadmap = [
         'Turn the common limits into fast visual checks instead of manual interpretation.',
   ),
   _RoadmapItem(
+    title: 'Persist the stamp workflow',
+    subtitle:
+        'Add picked-state memory, saved exclusions, and tighter counter-side explanations around the stamp recommendations.',
+  ),
+  _RoadmapItem(
     title: 'Service comparison prompts',
     subtitle:
         'Help staff explain options confidently when customers are choosing between services.',
-  ),
-  _RoadmapItem(
-    title: 'Counter-side reference extras',
-    subtitle:
-        'Add the small daily helpers that save time once the core flows are solid.',
   ),
 ];
 
