@@ -1,3 +1,5 @@
+import 'package:counter_toolkit/app/app_metadata.dart';
+import 'package:counter_toolkit/features/about/presentation/about_page.dart';
 import 'package:counter_toolkit/features/stamps/domain/best_fit_stamp_solver.dart';
 import 'package:counter_toolkit/features/stamps/presentation/stamp_calculator_page.dart';
 import 'package:counter_toolkit/features/tracking/domain/tracking_service.dart';
@@ -33,6 +35,14 @@ class DashboardPage extends StatelessWidget {
         builder: (_) => StampCalculatorPage(solver: stampSolver),
       ),
     );
+  }
+
+  void _openAbout(BuildContext context) {
+    Feedback.forTap(context);
+    HapticFeedback.selectionClick();
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const AboutPage()));
   }
 
   @override
@@ -73,6 +83,8 @@ class DashboardPage extends StatelessWidget {
                         _HeroBanner(
                           onOpenTracking: () => _openTracking(context),
                           onOpenStamps: () => _openStamps(context),
+                          onOpenAbout: () => _openAbout(context),
+                          versionLabel: appVersionLabel,
                         ),
                         const SizedBox(height: 20),
                         if (isWide)
@@ -137,10 +149,17 @@ class DashboardPage extends StatelessWidget {
 }
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onOpenTracking, required this.onOpenStamps});
+  const _HeroBanner({
+    required this.onOpenTracking,
+    required this.onOpenStamps,
+    required this.onOpenAbout,
+    required this.versionLabel,
+  });
 
   final VoidCallback onOpenTracking;
   final VoidCallback onOpenStamps;
+  final VoidCallback onOpenAbout;
+  final String versionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -172,10 +191,22 @@ class _HeroBanner extends StatelessWidget {
                 background: Color(0x24FFFFFF),
                 foreground: Color(0xFFF8F4EC),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
               _HeroChip(
+                label: versionLabel,
+                background: const Color(0xFFF0C177),
+                foreground: const Color(0xFF251506),
+              ),
+              const _HeroChip(
                 label: 'Two tools live',
-                background: Color(0xFFF0C177),
-                foreground: Color(0xFF251506),
+                background: Color(0x24FFFFFF),
+                foreground: Color(0xFFF8F4EC),
               ),
             ],
           ),
@@ -190,18 +221,10 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'A digital toolkit for people serving customers behind the counter.',
+            'Choose a live tool for the current queue.',
             style: textTheme.titleLarge?.copyWith(
               color: const Color(0xFFE4EEE8),
               fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'The toolkit now has two live counter workflows: provider-aware Track & Trace and a colour-led best-fit stamp picker for exact postage make-up.',
-            style: textTheme.bodyLarge?.copyWith(
-              color: const Color(0xFFD7E3DE),
-              height: 1.55,
             ),
           ),
           const SizedBox(height: 24),
@@ -220,7 +243,10 @@ class _HeroBanner extends StatelessWidget {
               if (isNarrow) {
                 return Column(
                   children: [
-                    _HeroCallout(textTheme: textTheme),
+                    _HeroCallout(
+                      textTheme: textTheme,
+                      versionLabel: versionLabel,
+                    ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 12,
@@ -240,6 +266,13 @@ class _HeroBanner extends StatelessWidget {
                           background: const Color(0xFFE6F0EC),
                           foreground: const Color(0xFF113331),
                         ),
+                        _HeroButton(
+                          onPressed: onOpenAbout,
+                          icon: Icons.info_outline_rounded,
+                          label: 'About',
+                          background: const Color(0x1FFFFFFF),
+                          foreground: const Color(0xFFF8F4EC),
+                        ),
                       ],
                     ),
                   ],
@@ -248,7 +281,12 @@ class _HeroBanner extends StatelessWidget {
 
               return Row(
                 children: [
-                  Expanded(child: _HeroCallout(textTheme: textTheme)),
+                  Expanded(
+                    child: _HeroCallout(
+                      textTheme: textTheme,
+                      versionLabel: versionLabel,
+                    ),
+                  ),
                   const SizedBox(width: 14),
                   SizedBox(
                     width: 270,
@@ -270,6 +308,14 @@ class _HeroBanner extends StatelessWidget {
                           background: const Color(0xFFE6F0EC),
                           foreground: const Color(0xFF113331),
                         ),
+                        const SizedBox(height: 12),
+                        _HeroButton(
+                          onPressed: onOpenAbout,
+                          icon: Icons.info_outline_rounded,
+                          label: 'About',
+                          background: const Color(0x1FFFFFFF),
+                          foreground: const Color(0xFFF8F4EC),
+                        ),
                       ],
                     ),
                   ),
@@ -284,9 +330,10 @@ class _HeroBanner extends StatelessWidget {
 }
 
 class _HeroCallout extends StatelessWidget {
-  const _HeroCallout({required this.textTheme});
+  const _HeroCallout({required this.textTheme, required this.versionLabel});
 
   final TextTheme textTheme;
+  final String versionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +355,7 @@ class _HeroCallout extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Open the live tools to preview both parcel lookups and the exact-postage stamp picker a clerk can use mid-queue.',
+              '$versionLabel is on this device. Open About for the fuller product notes, design intent, and roadmap.',
               style: textTheme.bodyLarge?.copyWith(
                 color: const Color(0xFFF6F1E8),
                 fontWeight: FontWeight.w600,

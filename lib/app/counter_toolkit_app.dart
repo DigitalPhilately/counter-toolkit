@@ -1,3 +1,4 @@
+import 'package:counter_toolkit/app/app_metadata.dart';
 import 'package:counter_toolkit/app/counter_toolkit_theme.dart';
 import 'package:counter_toolkit/features/dashboard/presentation/dashboard_page.dart';
 import 'package:counter_toolkit/features/stamps/data/default_stamp_catalog.dart';
@@ -11,7 +12,7 @@ class CounterToolkitApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Counter Toolkit',
+      title: appName,
       debugShowCheckedModeBanner: false,
       theme: buildCounterToolkitTheme(),
       home: const DashboardPage(

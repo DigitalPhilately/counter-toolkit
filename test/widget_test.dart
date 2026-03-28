@@ -1,3 +1,4 @@
+import 'package:counter_toolkit/app/app_metadata.dart';
 import 'package:counter_toolkit/app/counter_toolkit_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ void main() {
 
     expect(find.text('Open Track & Trace'), findsOneWidget);
     expect(find.text('Open Best Fit Stamps'), findsOneWidget);
+    expect(find.text(appVersionLabel), findsOneWidget);
 
     await tester.ensureVisible(find.text('Open Track & Trace'));
     await tester.tap(find.text('Open Track & Trace'));
@@ -69,4 +71,18 @@ void main() {
       expect(find.text('1 value marked out of stock.'), findsOneWidget);
     },
   );
+
+  testWidgets('opens about screen and shows the current version', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CounterToolkitApp());
+
+    await tester.ensureVisible(find.text('About'));
+    await tester.tap(find.text('About'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('About Counter Toolkit'), findsOneWidget);
+    expect(find.text(appVersionLabel), findsWidgets);
+    expect(find.text(appVersionDisplay), findsOneWidget);
+  });
 }
