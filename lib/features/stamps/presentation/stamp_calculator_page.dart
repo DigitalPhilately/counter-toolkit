@@ -555,22 +555,24 @@ class _SolutionView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: recommended.items
-                      .map(
-                        (item) => Padding(
-                          padding: EdgeInsets.only(
-                            right: item == recommended.items.last ? 0 : 14,
+              _StampTray(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: recommended.items
+                        .map(
+                          (item) => Padding(
+                            padding: EdgeInsets.only(
+                              right: item == recommended.items.last ? 0 : 16,
+                            ),
+                            child: StampPickTile(
+                              item: item,
+                              onTap: () => onStampTap(item),
+                            ),
                           ),
-                          child: StampPickTile(
-                            item: item,
-                            onTap: () => onStampTap(item),
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
+                        )
+                        .toList(growable: false),
+                  ),
                 ),
               ),
             ],
@@ -622,6 +624,38 @@ class _SolutionView extends StatelessWidget {
             ),
           ),
         ],
+        const SizedBox(height: 20),
+        _SectionPanel(
+          eyebrow: 'Shelf preview',
+          title: 'What is currently on the book',
+          description:
+              'A quick visual shelf of the active stamp values after the current toggles and exclusions.',
+          child: _StampTray(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: result.availableStamps
+                  .map(
+                    (stamp) => StampPickTile(
+                      item: StampLineItem(
+                        stamp: stamp,
+                        count: 1,
+                        isPicked: pickedValues.contains(stamp.valuePence),
+                      ),
+                      compact: true,
+                      onTap: () => onStampTap(
+                        StampLineItem(
+                          stamp: stamp,
+                          count: 1,
+                          isPicked: pickedValues.contains(stamp.valuePence),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -693,18 +727,20 @@ class _AlternativeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: combination.items
-                .map(
-                  (item) => StampPickTile(
-                    item: item,
-                    compact: true,
-                    onTap: () => onStampTap(item),
-                  ),
-                )
-                .toList(growable: false),
+          _StampTray(
+            child: Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              children: combination.items
+                  .map(
+                    (item) => StampPickTile(
+                      item: item,
+                      compact: true,
+                      onTap: () => onStampTap(item),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
           ),
         ],
       ),
@@ -768,6 +804,39 @@ class _ControlShell extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _StampTray extends StatelessWidget {
+  const _StampTray({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1ECE5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2DBCF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.6),
+            blurRadius: 0,
+            spreadRadius: 1,
+            offset: const Offset(0, 1),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: child,
     );

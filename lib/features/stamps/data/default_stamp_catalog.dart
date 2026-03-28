@@ -29,7 +29,7 @@ const defaultStampCatalog = [
   ),
   StampDefinition(
     valuePence: 315,
-    label: 'NVI £3.15',
+    label: '£3.15',
     type: StampType.nvi,
     colourName: 'Harbour',
     colourHex: '#4C6E91',
@@ -37,7 +37,7 @@ const defaultStampCatalog = [
   ),
   StampDefinition(
     valuePence: 170,
-    label: 'NVI £1.70',
+    label: '£1.70',
     type: StampType.nvi,
     colourName: 'Rose',
     colourHex: '#B66A7C',
@@ -45,7 +45,7 @@ const defaultStampCatalog = [
   ),
   StampDefinition(
     valuePence: 155,
-    label: 'NVI £1.55',
+    label: '£1.55',
     type: StampType.nvi,
     colourName: 'Teal',
     colourHex: '#4A7E82',
@@ -61,7 +61,7 @@ const defaultStampCatalog = [
   ),
   StampDefinition(
     valuePence: 87,
-    label: 'NVI 87p',
+    label: '87p',
     type: StampType.nvi,
     colourName: 'Heather',
     colourHex: '#8E7AB5',

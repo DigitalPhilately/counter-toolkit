@@ -17,69 +17,71 @@ class StampPickTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stampColor = colorFromHex(item.stamp.colourHex);
     final tile = SizedBox(
-      width: compact ? 112 : 124,
-      height: compact ? 168 : 186,
+      width: compact ? 118 : 142,
+      height: compact ? 156 : 188,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 14),
+          PhysicalShape(
+            elevation: compact ? 5 : 8,
+            color: const Color(0xFFF9F6F1),
+            shadowColor: Colors.black.withValues(alpha: 0.16),
+            clipper: const _StampEdgeClipper(),
+            child: Padding(
+              padding: EdgeInsets.all(compact ? 6 : 7),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F1EA),
+                  border: Border.all(
+                    color: const Color(0xFFE4DED3),
+                    width: 1.1,
+                  ),
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(26),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 67,
-                    child: _StampFace(
-                      item: item,
-                      color: stampColor,
-                      compact: compact,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 64,
+                      child: _StampFace(item: item, compact: compact),
                     ),
-                  ),
-                  Expanded(
-                    flex: 33,
-                    child: _BarcodeStrip(
-                      seed: item.stamp.label,
-                      color: darken(stampColor, 0.18),
+                    const _PerforationBridge(),
+                    Expanded(
+                      flex: 24,
+                      child: _BarcodeStrip(seed: item.stamp.label),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
           if (item.count > 1)
             Positioned(
-              top: -10,
-              right: -8,
+              top: -8,
+              right: -4,
               child: _CountBadge(count: item.count),
             ),
           if (item.isPicked)
             Positioned(
-              bottom: 10,
-              right: 10,
+              top: 10,
+              left: 10,
               child: Container(
-                width: 28,
-                height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0F5B57),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.94),
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.check_rounded,
-                  size: 18,
-                  color: Colors.white,
+                  size: 16,
+                  color: Color(0xFF0F5B57),
                 ),
               ),
             ),
@@ -94,7 +96,7 @@ class StampPickTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: tile,
       ),
@@ -103,117 +105,107 @@ class StampPickTile extends StatelessWidget {
 }
 
 class _StampFace extends StatelessWidget {
-  const _StampFace({
-    required this.item,
-    required this.color,
-    required this.compact,
-  });
+  const _StampFace({required this.item, required this.compact});
 
   final StampLineItem item;
-  final Color color;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final faceColor = lighten(color, 0.04);
+    final stampColor = colorFromHex(item.stamp.colourHex);
+    final faceTop = lighten(stampColor, 0.1);
+    final faceBottom = darken(stampColor, 0.12);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            lighten(faceColor, 0.08),
-            faceColor,
-            darken(faceColor, 0.08),
-          ],
+          colors: [faceTop, stampColor, faceBottom],
         ),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(compact ? 10 : 12),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _CameoPainter(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shadowColor: Colors.black.withValues(alpha: 0.08),
-                ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _StampFaceTexturePainter(
+                lightColor: Colors.white.withValues(alpha: 0.14),
+                shadowColor: Colors.black.withValues(alpha: 0.08),
               ),
             ),
-            Align(
-              alignment: Alignment.topLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  stampTypeLabel(item.stamp.type),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                  ),
-                ),
+          ),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _EngravedCameoPainter(
+                baseColor: Colors.white.withValues(alpha: 0.26),
+                lineColor: Colors.white.withValues(alpha: 0.22),
+                shadowColor: Colors.black.withValues(alpha: 0.12),
               ),
             ),
-            Align(
+          ),
+          Positioned(
+            left: compact ? 7 : 9,
+            right: compact ? 6 : 8,
+            bottom: compact ? 7 : 9,
+            child: FittedBox(
               alignment: Alignment.bottomLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.stamp.colourName,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w700,
-                      fontSize: compact ? 10 : null,
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.stamp.label,
+                maxLines: 1,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.98),
+                  fontSize: compact ? 27 : 32,
+                  fontWeight: FontWeight.w700,
+                  height: 0.95,
+                  letterSpacing: -0.6,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.stamp.label,
-                    style:
-                        (compact
-                                ? Theme.of(context).textTheme.titleMedium
-                                : Theme.of(context).textTheme.titleLarge)
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              height: 0.95,
-                            ),
-                  ),
-                ],
+                  ],
+                  fontFamilyFallback: const ['Georgia', 'Times New Roman'],
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PerforationBridge extends StatelessWidget {
+  const _PerforationBridge();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 12,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: Color(0xFFF8F5F0)),
+        child: CustomPaint(painter: const _PerforationBridgePainter()),
       ),
     );
   }
 }
 
 class _BarcodeStrip extends StatelessWidget {
-  const _BarcodeStrip({required this.seed, required this.color});
+  const _BarcodeStrip({required this.seed});
 
   final String seed;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [color, darken(color, 0.12)],
-        ),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFDFBF8),
+        border: Border(left: BorderSide(color: Color(0xFFE2DBCF), width: 1)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
         child: CustomPaint(
           painter: _PseudoBarcodePainter(seed: seed),
           child: const SizedBox.expand(),
@@ -231,21 +223,31 @@ class _CountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2A29),
+        color: const Color(0xFF232E35),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white, width: 2),
       ),
       child: Text(
         'x$count',
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
+}
+
+class _StampEdgeClipper extends CustomClipper<Path> {
+  const _StampEdgeClipper();
+
+  @override
+  Path getClip(Size size) => _buildStampEdgePath(size);
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _PseudoBarcodePainter extends CustomPainter {
@@ -255,33 +257,31 @@ class _PseudoBarcodePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cellsAcross = 5;
-    final cellsDown = 18;
+    final cellsAcross = 6;
+    final cellsDown = 22;
     final cellWidth = size.width / cellsAcross;
     final cellHeight = size.height / cellsDown;
     final seedValue = seed.codeUnits.fold<int>(
-      17,
-      (sum, value) => sum * 31 + value,
+      31,
+      (sum, value) => (sum * 37) + value,
     );
     var state = seedValue;
 
     for (var y = 0; y < cellsDown; y++) {
       for (var x = 0; x < cellsAcross; x++) {
         state = (state * 1103515245 + 12345) & 0x7fffffff;
-        final isDark = state % 7 > 2;
+        final isDark = state % 10 >= 3;
         final paint = Paint()
-          ..color = isDark
-              ? Colors.white.withValues(alpha: 0.85)
-              : Colors.white.withValues(alpha: 0.18);
-        final inset = (state % 3).toDouble() * 0.5;
+          ..color = isDark ? const Color(0xFF283241) : const Color(0xFFE9E3D9);
+        final inset = (state % 2).toDouble() * 0.4;
         final rect = RRect.fromRectAndRadius(
           Rect.fromLTWH(
-            x * cellWidth + inset,
-            y * cellHeight + inset,
-            math.max(2, cellWidth - (inset * 2)),
-            math.max(3, cellHeight - (inset * 2)),
+            (x * cellWidth) + inset,
+            (y * cellHeight) + inset,
+            math.max(2.2, cellWidth - (inset * 2)),
+            math.max(2.6, cellHeight - (inset * 2)),
           ),
-          const Radius.circular(2),
+          const Radius.circular(1.4),
         );
         canvas.drawRRect(rect, paint);
       }
@@ -294,85 +294,262 @@ class _PseudoBarcodePainter extends CustomPainter {
   }
 }
 
-class _CameoPainter extends CustomPainter {
-  const _CameoPainter({required this.color, required this.shadowColor});
+class _PerforationBridgePainter extends CustomPainter {
+  const _PerforationBridgePainter();
 
-  final Color color;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final guidePaint = Paint()..color = const Color(0xFFE9E2D6);
+    canvas.drawRect(
+      Rect.fromLTWH(size.width - 1, 0, 1, size.height),
+      guidePaint,
+    );
+
+    final punchPaint = Paint()..color = const Color(0xFFD3CCC1);
+    final highlightPaint = Paint()..color = Colors.white.withValues(alpha: 0.7);
+    final count = math.max(8, (size.height / 11).floor());
+    final spacing = size.height / (count + 1);
+
+    for (var index = 1; index <= count; index++) {
+      final center = Offset(size.width * 0.42, spacing * index);
+      canvas.drawCircle(center, 1.9, punchPaint);
+      canvas.drawCircle(center.translate(-0.35, -0.35), 0.8, highlightPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _StampFaceTexturePainter extends CustomPainter {
+  const _StampFaceTexturePainter({
+    required this.lightColor,
+    required this.shadowColor,
+  });
+
+  final Color lightColor;
   final Color shadowColor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.52, size.height * 0.42);
+    final lightPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [lightColor, Colors.transparent],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, lightPaint);
+
+    final texturePaint = Paint()
+      ..color = shadowColor
+      ..strokeWidth = 0.7
+      ..style = PaintingStyle.stroke;
+
+    final diagonalGap = size.width / 8;
+    for (
+      double offset = -size.height;
+      offset < size.width;
+      offset += diagonalGap
+    ) {
+      final start = Offset(offset, 0);
+      final end = Offset(offset + size.height, size.height);
+      canvas.drawLine(start, end, texturePaint);
+    }
+
+    final vignettePaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.2),
+        radius: 1.05,
+        colors: [
+          Colors.transparent,
+          shadowColor.withValues(alpha: 0.06),
+          shadowColor.withValues(alpha: 0.18),
+        ],
+        stops: const [0.0, 0.62, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, vignettePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _StampFaceTexturePainter oldDelegate) {
+    return oldDelegate.lightColor != lightColor ||
+        oldDelegate.shadowColor != shadowColor;
+  }
+}
+
+class _EngravedCameoPainter extends CustomPainter {
+  const _EngravedCameoPainter({
+    required this.baseColor,
+    required this.lineColor,
+    required this.shadowColor,
+  });
+
+  final Color baseColor;
+  final Color lineColor;
+  final Color shadowColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
     final shoulderPath = Path()
-      ..moveTo(size.width * 0.12, size.height * 0.88)
+      ..moveTo(size.width * 0.1, size.height * 0.93)
       ..quadraticBezierTo(
-        size.width * 0.32,
-        size.height * 0.68,
-        size.width * 0.54,
+        size.width * 0.36,
         size.height * 0.72,
+        size.width * 0.56,
+        size.height * 0.76,
       )
       ..quadraticBezierTo(
-        size.width * 0.84,
-        size.height * 0.78,
-        size.width * 0.92,
-        size.height * 0.98,
+        size.width * 0.82,
+        size.height * 0.79,
+        size.width * 0.98,
+        size.height * 0.94,
       )
-      ..lineTo(size.width * 0.08, size.height * 0.98)
+      ..lineTo(size.width * 0.1, size.height * 0.98)
       ..close();
 
-    canvas.drawShadow(shoulderPath, shadowColor, 8, true);
-    canvas.drawPath(shoulderPath, Paint()..color = color);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: center,
-        width: size.width * 0.38,
-        height: size.height * 0.34,
-      ),
-      Paint()..color = color,
+    canvas.drawPath(
+      shoulderPath.shift(const Offset(1.5, 2)),
+      Paint()..color = shadowColor.withValues(alpha: 0.16),
     );
+    canvas.drawPath(shoulderPath, Paint()..color = baseColor);
 
-    final profilePath = Path()
-      ..moveTo(size.width * 0.55, size.height * 0.22)
+    final headRect = Rect.fromLTWH(
+      size.width * 0.22,
+      size.height * 0.13,
+      size.width * 0.45,
+      size.height * 0.52,
+    );
+    canvas.drawOval(
+      headRect.shift(const Offset(1.4, 1.8)),
+      Paint()..color = shadowColor.withValues(alpha: 0.14),
+    );
+    canvas.drawOval(headRect, Paint()..color = baseColor);
+
+    final silhouettePath = Path()
+      ..moveTo(size.width * 0.55, size.height * 0.18)
       ..quadraticBezierTo(
-        size.width * 0.67,
-        size.height * 0.26,
         size.width * 0.69,
-        size.height * 0.39,
+        size.height * 0.2,
+        size.width * 0.73,
+        size.height * 0.34,
       )
       ..quadraticBezierTo(
-        size.width * 0.62,
-        size.height * 0.43,
-        size.width * 0.63,
-        size.height * 0.49,
+        size.width * 0.7,
+        size.height * 0.38,
+        size.width * 0.64,
+        size.height * 0.41,
       )
       ..quadraticBezierTo(
-        size.width * 0.55,
-        size.height * 0.52,
-        size.width * 0.57,
-        size.height * 0.59,
+        size.width * 0.68,
+        size.height * 0.45,
+        size.width * 0.61,
+        size.height * 0.51,
       )
       ..quadraticBezierTo(
-        size.width * 0.51,
-        size.height * 0.59,
+        size.width * 0.56,
+        size.height * 0.56,
+        size.width * 0.56,
+        size.height * 0.66,
+      )
+      ..quadraticBezierTo(
         size.width * 0.47,
-        size.height * 0.54,
+        size.height * 0.66,
+        size.width * 0.4,
+        size.height * 0.61,
       );
 
     canvas.drawPath(
-      profilePath,
+      silhouettePath,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.32)
+        ..color = lineColor.withValues(alpha: 0.95)
         ..strokeWidth = 2.2
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round,
     );
+
+    final hairPaint = Paint()
+      ..color = lineColor.withValues(alpha: 0.7)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    for (double step = 0.18; step <= 0.48; step += 0.05) {
+      final hair = Path()
+        ..moveTo(size.width * 0.28, size.height * step)
+        ..quadraticBezierTo(
+          size.width * 0.47,
+          size.height * (step - 0.05),
+          size.width * 0.59,
+          size.height * (step + 0.02),
+        );
+      canvas.drawPath(hair, hairPaint);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _CameoPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.shadowColor != shadowColor;
+  bool shouldRepaint(covariant _EngravedCameoPainter oldDelegate) {
+    return oldDelegate.baseColor != baseColor ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.shadowColor != shadowColor;
   }
+}
+
+Path _buildStampEdgePath(Size size) {
+  const notchRadius = 3.6;
+  const cornerRadius = 7.0;
+  const inset = 0.8;
+
+  final basePath = Path()
+    ..addRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          inset,
+          inset,
+          size.width - (inset * 2),
+          size.height - (inset * 2),
+        ),
+        const Radius.circular(cornerRadius),
+      ),
+    );
+
+  final holesPath = Path();
+  final topCount = math.max(8, ((size.width - (cornerRadius * 2)) / 9).floor());
+  final sideCount = math.max(
+    10,
+    ((size.height - (cornerRadius * 2)) / 9).floor(),
+  );
+
+  for (var index = 0; index < topCount; index++) {
+    final t = (index + 0.5) / topCount;
+    final x = lerpDouble(cornerRadius + 1, size.width - cornerRadius - 1, t);
+    holesPath.addOval(
+      Rect.fromCircle(center: Offset(x, inset), radius: notchRadius),
+    );
+    holesPath.addOval(
+      Rect.fromCircle(
+        center: Offset(x, size.height - inset),
+        radius: notchRadius,
+      ),
+    );
+  }
+
+  for (var index = 0; index < sideCount; index++) {
+    final t = (index + 0.5) / sideCount;
+    final y = lerpDouble(cornerRadius + 1, size.height - cornerRadius - 1, t);
+    holesPath.addOval(
+      Rect.fromCircle(center: Offset(inset, y), radius: notchRadius),
+    );
+    holesPath.addOval(
+      Rect.fromCircle(
+        center: Offset(size.width - inset, y),
+        radius: notchRadius,
+      ),
+    );
+  }
+
+  return Path.combine(PathOperation.difference, basePath, holesPath);
+}
+
+double lerpDouble(double start, double end, double t) {
+  return start + ((end - start) * t);
 }
 
 Color colorFromHex(String hex) {
