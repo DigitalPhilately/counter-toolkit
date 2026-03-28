@@ -18,6 +18,17 @@ void main() {
     expect(result.recommended?.distinctValueCount, 2);
   });
 
+  test('prefers a shorter pick list over fewer stamp values', () {
+    final result = solver.calculate(
+      targetValuePence: 25,
+      settings: const StampCalculatorSettings(),
+    );
+
+    expect(result.hasSolution, isTrue);
+    expect(result.recommended?.signature, '20x1|5x1');
+    expect(result.recommended?.totalStampCount, 2);
+  });
+
   test('high tariff toggle excludes 350 and 430 while keeping 340', () {
     final result = solver.calculate(
       targetValuePence: 1025,
@@ -41,6 +52,8 @@ void main() {
 
     expect(result.hasSolution, isTrue);
     expect(result.recommended?.totalValuePence, 1025);
-    expect(result.recommended?.signature, '315x3|20x4');
+    expect(result.recommended?.signature, '315x1|170x3|100x2');
+    expect(result.recommended?.totalStampCount, 6);
+    expect(result.recommended?.distinctValueCount, 3);
   });
 }

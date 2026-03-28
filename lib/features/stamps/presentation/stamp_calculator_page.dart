@@ -2,6 +2,7 @@ import 'package:counter_toolkit/features/stamps/domain/best_fit_stamp_solver.dar
 import 'package:counter_toolkit/features/stamps/domain/stamp_models.dart';
 import 'package:counter_toolkit/features/stamps/presentation/stamp_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum _AmountEntryMode { pounds, pence }
 
@@ -59,6 +60,21 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
     });
   }
 
+  void _acknowledgeTap({bool major = false}) {
+    Feedback.forTap(context);
+    if (major) {
+      HapticFeedback.lightImpact();
+    } else {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _recalculateFromUserAction() {
+    FocusScope.of(context).unfocus();
+    _acknowledgeTap(major: true);
+    _recalculate();
+  }
+
   int? _parseTargetValue(String raw, _AmountEntryMode mode) {
     final cleaned = raw.trim().replaceAll('£', '').replaceAll('p', '');
     if (cleaned.isEmpty) {
@@ -88,6 +104,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
       return;
     }
 
+    _acknowledgeTap();
     final currentValue = _parseTargetValue(
       _targetController.text,
       _amountEntryMode,
@@ -123,6 +140,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _togglePreferNvi(bool value) {
+    _acknowledgeTap();
     setState(() {
       _settings = _settings.copyWith(preferNvi: value);
     });
@@ -130,6 +148,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _toggleHighTariff(bool value) {
+    _acknowledgeTap();
     setState(() {
       _settings = _settings.copyWith(excludeHighTariff: value);
     });
@@ -137,6 +156,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _setExcludedValue(int value, bool excluded) {
+    _acknowledgeTap();
     final nextExcluded = Set<int>.from(_settings.excludedValues);
     if (excluded) {
       nextExcluded.add(value);
@@ -152,6 +172,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _togglePickedValue(int value) {
+    _acknowledgeTap();
     setState(() {
       if (_pickedValues.contains(value)) {
         _pickedValues.remove(value);
@@ -163,6 +184,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   void _clearExclusions() {
+    _acknowledgeTap();
     setState(() {
       _settings = _settings.copyWith(excludedValues: <int>{});
     });
@@ -170,6 +192,8 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   Future<void> _openSetupSheet() async {
+    FocusScope.of(context).unfocus();
+    _acknowledgeTap(major: true);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -210,6 +234,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
   }
 
   Future<void> _openStampDetails(StampLineItem item) async {
+    _acknowledgeTap();
     final excluded = _settings.excludedValues.contains(item.stamp.valuePence);
     await showModalBottomSheet<void>(
       context: context,
@@ -359,7 +384,7 @@ class _StampCalculatorPageState extends State<StampCalculatorPage> {
                       parsedPreviewValue: parsedPreviewValue,
                       onBack: () => Navigator.of(context).pop(),
                       onAmountChanged: _handleAmountChanged,
-                      onRecalculate: _recalculate,
+                      onRecalculate: _recalculateFromUserAction,
                       onAmountEntryModeChanged: _setAmountEntryMode,
                       onOpenSetup: _openSetupSheet,
                     ),
@@ -1035,81 +1060,84 @@ class _StockTileButton extends StatelessWidget {
 
     return SizedBox(
       width: 132,
-      child: InkWell(
-        key: ValueKey('stock-tile-${stamp.valuePence}'),
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 180),
-                  opacity: excluded ? 0.42 : 1,
-                  child: StampPickTile(
-                    item: StampLineItem(stamp: stamp, count: 1),
-                    compact: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey('stock-tile-${stamp.valuePence}'),
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: excluded ? 0.42 : 1,
+                    child: StampPickTile(
+                      item: StampLineItem(stamp: stamp, count: 1),
+                      compact: true,
+                    ),
                   ),
-                ),
-                if (excluded)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.58),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
+                  if (excluded)
+                    Positioned.fill(
+                      child: IgnorePointer(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF9C3D2A),
-                            borderRadius: BorderRadius.circular(999),
+                            color: Colors.white.withValues(alpha: 0.58),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
-                            'Out of stock',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9C3D2A),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Out of stock',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              stamp.label,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              excluded ? 'Out of stock' : 'In stock',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: statusColor,
-                fontWeight: FontWeight.w700,
+                ],
               ),
-            ),
-            if (filterNote != null) ...[
               const SizedBox(height: 4),
               Text(
-                filterNote!,
+                stamp.label,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                excluded ? 'Out of stock' : 'In stock',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF7B6C59),
-                  height: 1.35,
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              if (filterNote != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  filterNote!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF7B6C59),
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1288,53 +1316,56 @@ class _SettingToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => onChanged(!value),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F2EA),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2DBCF)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: value,
-              onChanged: (next) => onChanged(next ?? false),
-              side: const BorderSide(color: Color(0xFF7B6C59)),
-              checkColor: const Color(0xFF251506),
-              fillColor: WidgetStateProperty.resolveWith((states) {
-                return states.contains(WidgetState.selected)
-                    ? const Color(0xFFF0C177)
-                    : Colors.transparent;
-              }),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF5B6563),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => onChanged(!value),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F2EA),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2DBCF)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: value,
+                onChanged: (next) => onChanged(next ?? false),
+                side: const BorderSide(color: Color(0xFF7B6C59)),
+                checkColor: const Color(0xFF251506),
+                fillColor: WidgetStateProperty.resolveWith((states) {
+                  return states.contains(WidgetState.selected)
+                      ? const Color(0xFFF0C177)
+                      : Colors.transparent;
+                }),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF5B6563),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

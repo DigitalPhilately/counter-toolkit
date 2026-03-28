@@ -3,6 +3,7 @@ import 'package:counter_toolkit/features/stamps/presentation/stamp_calculator_pa
 import 'package:counter_toolkit/features/tracking/domain/tracking_service.dart';
 import 'package:counter_toolkit/features/tracking/presentation/tracking_lookup_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({
@@ -15,6 +16,8 @@ class DashboardPage extends StatelessWidget {
   final BestFitStampSolver stampSolver;
 
   void _openTracking(BuildContext context) {
+    Feedback.forTap(context);
+    HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => TrackingLookupPage(service: trackingService),
@@ -23,6 +26,8 @@ class DashboardPage extends StatelessWidget {
   }
 
   void _openStamps(BuildContext context) {
+    Feedback.forTap(context);
+    HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => StampCalculatorPage(solver: stampSolver),
