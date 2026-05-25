@@ -1046,9 +1046,9 @@ const _roadmap = [
         'Replace the mock provider with a server-backed adapter for Royal Mail or UPU-style lookups.',
   ),
   _RoadmapItem(
-    title: 'Size and weight reference tools',
+    title: 'Parcel Sizer',
     subtitle:
-        'Turn the common limits into fast visual checks instead of manual interpretation.',
+        'Show carrier size and weight limits, then let staff enter height, width, depth, and weight to get a format or size guide.',
   ),
   _RoadmapItem(
     title: 'Persist the stamp workflow',

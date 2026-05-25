@@ -114,7 +114,7 @@ class AboutPage extends StatelessWidget {
                       child: _AboutBulletList(
                         items: [
                           'Connect Track & Trace to a live backend.',
-                          'Add size and weight reference tools.',
+                          'Add Parcel Sizer for carrier size and weight limits, with height, width, depth, and weight entry for format guidance.',
                           'Improve saved stock and picked-state memory for stamps.',
                           'Add service comparison prompts for customer conversations.',
                         ],
