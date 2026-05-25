@@ -179,7 +179,7 @@ class _PageHeader extends StatelessWidget {
             runSpacing: 10,
             children: const [
               _HeaderChip(
-                label: 'First feature live',
+                label: 'Demo data',
                 background: Color(0xFFF0C177),
                 foreground: Color(0xFF251506),
               ),
@@ -200,7 +200,7 @@ class _PageHeader extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'This screen now supports auto-routing and provider-specific demo modes, with the lookup boundary ready for a real backend later.',
+            'Enter a tracking reference, choose a provider route, and read the latest status in a counter-friendly format.',
             style: textTheme.titleLarge?.copyWith(
               color: const Color(0xFFE4EEE8),
               height: 1.35,
@@ -275,7 +275,7 @@ class _LookupPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Start with a sample number or paste a real one later. Choose Auto route or lock the lookup to a specific provider path.',
+            'Use a sample reference while live Royal Mail access is being set up, or paste a reference to check validation and routing.',
             style: textTheme.bodyLarge?.copyWith(
               color: const Color(0xFF5B6563),
               height: 1.45,
@@ -407,7 +407,7 @@ class _IdlePanel extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  'Try a sample lookup to preview the flow that will eventually sit on top of a live API.',
+                  'Choose a sample reference to load a complete parcel journey.',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -417,7 +417,7 @@ class _IdlePanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'This first slice proves out the customer-facing lookup journey, result summary, and event timeline before we connect any provider credentials.',
+            'The lookup uses demo journeys for now. The screen layout, routing controls, and status timeline are the same shape the live service will use.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: const Color(0xFF5B6563),
               height: 1.45,
@@ -458,10 +458,10 @@ class _NotFoundPanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           const _InfoBanner(
-            icon: Icons.layers_outlined,
-            title: 'Why this is still useful',
+            icon: Icons.search_off_rounded,
+            title: 'No demo match',
             body:
-                'The screen, validation, result state, and provider abstraction are already in place. The next job is swapping the mock service for a real adapter behind a backend.',
+                'This reference is not in the current demo set. Use a sample reference or switch route mode to check how the result state behaves.',
           ),
         ],
       ),
@@ -772,24 +772,24 @@ class _IntegrationNotesPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Integration next steps',
+            'Provider status',
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           const _InfoBanner(
-            icon: Icons.account_tree_outlined,
-            title: 'Recommended shape',
+            icon: Icons.cloud_queue_outlined,
+            title: 'Current source',
             body:
-                'App -> your backend -> provider adapter. Keep API credentials and provider-specific request signing out of the mobile app.',
+                'Tracking results are supplied by local demo data until Royal Mail API access is approved and connected.',
           ),
           const SizedBox(height: 14),
           const _InfoBanner(
             icon: Icons.swap_horiz_rounded,
-            title: 'Provider swap point',
+            title: 'Route handling',
             body:
-                'Replace MockTrackingService with a backend-backed service that maps Royal Mail or UPU responses into TrackingItem and TrackingEvent.',
+                'Auto route, Royal Mail, Parcelforce, and UPU modes are shown so staff can see which provider path a lookup is using.',
           ),
           const SizedBox(height: 14),
           Wrap(
@@ -802,9 +802,9 @@ class _IntegrationNotesPanel extends StatelessWidget {
           const SizedBox(height: 14),
           const _InfoBanner(
             icon: Icons.rule_rounded,
-            title: 'Operational caution',
+            title: 'Counter wording',
             body:
-                'Counter staff need plain-language explanations, not raw event codes. Keep the mapping layer responsible for turning provider events into counter-friendly status text.',
+                'Statuses are written for customer conversations rather than raw carrier event codes.',
           ),
         ],
       ),

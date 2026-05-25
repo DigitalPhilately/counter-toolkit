@@ -635,7 +635,7 @@ class _HeaderPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'How this screen works',
+                      'Pick list',
                       style: textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -644,23 +644,23 @@ class _HeaderPanel extends StatelessWidget {
                     const SizedBox(height: 12),
                     const _HeaderNote(
                       icon: Icons.looks_one_rounded,
-                      title: 'One clear setup area',
+                      title: 'Enter the target postage',
                       body:
-                          'All stock and ranking preferences now live behind Setup & stock so the main screen stays focused.',
+                          'Type the amount the item needs and recalculate the exact stamp make-up.',
                     ),
                     const SizedBox(height: 12),
                     const _HeaderNote(
                       icon: Icons.sell_outlined,
-                      title: 'Counter-ready output',
+                      title: 'Pick from the stamp book',
                       body:
-                          'Recommended stamps are grouped by value, with the fastest exact pick ranked first.',
+                          'The best result is ranked for fewer values, fewer stamps, and easier book movement.',
                     ),
                     const SizedBox(height: 12),
                     const _HeaderNote(
                       icon: Icons.inventory_2_outlined,
-                      title: 'Stock changes recalculate instantly',
+                      title: 'Adjust stock when needed',
                       body:
-                          'If a stamp is missing from the book, mark it out of stock in Setup and the combinations update immediately.',
+                          'Open Setup & stock when a value is missing or high tariff stamps should be hidden.',
                     ),
                   ],
                 ),

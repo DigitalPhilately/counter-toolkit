@@ -355,7 +355,7 @@ class _HeroCallout extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '$versionLabel is on this device. Open About for the fuller product notes, design intent, and roadmap.',
+              '$versionLabel is ready. Start with a parcel lookup or build an exact stamp pick for the customer in front of you.',
               style: textTheme.bodyLarge?.copyWith(
                 color: const Color(0xFFF6F1E8),
                 fontWeight: FontWeight.w600,
@@ -414,9 +414,9 @@ class _QuickToolsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SurfacePanel(
       eyebrow: 'Current toolset',
-      title: 'Live tools and the next queue',
+      title: 'Counter tools',
       description:
-          'Track & Trace and Best Fit Stamps are both interactive now. The remaining tiles stay visible as the next planned helpers.',
+          'Open an available workflow. Upcoming tools are shown separately so the counter layout stays familiar as the toolkit grows.',
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -451,9 +451,8 @@ class _ShiftEssentialsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SurfacePanel(
       eyebrow: 'Shift essentials',
-      title: 'What the app should help with first',
-      description:
-          'Keep the day-to-day counter decisions quick to reach and easy to trust.',
+      title: 'Fast actions for a busy counter',
+      description: 'The home screen keeps repeated queue tasks close to hand.',
       child: Column(
         children: _essentials
             .map(
@@ -474,10 +473,10 @@ class _BuildRoadmapPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfacePanel(
-      eyebrow: 'Build runway',
-      title: 'Suggested next milestones',
+      eyebrow: 'Upcoming tools',
+      title: 'Coming next',
       description:
-          'Now that two real tools are in place, the rest of the toolkit can grow around the same counter-side patterns.',
+          'These items are not active buttons yet, but they define the next practical tools to add.',
       child: Column(
         children: _roadmap
             .asMap()
@@ -506,9 +505,9 @@ class _GuidingPrinciplesPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SurfacePanel(
       eyebrow: 'Design guardrails',
-      title: 'A toolkit that earns its space',
+      title: 'Counter operating notes',
       description:
-          'The product should feel calm under pressure and useful in a busy queue.',
+          'Short reminders for how each tool should behave when the queue is moving.',
       child: Wrap(
         spacing: 16,
         runSpacing: 16,
@@ -964,9 +963,9 @@ class _Principle {
 }
 
 const _heroPoints = [
-  'Track & Trace working',
-  'Best Fit Stamps live',
-  'Counter-first language',
+  'Parcel lookup',
+  'Exact stamp make-up',
+  'Counter workflow',
 ];
 
 const _quickTools = [
@@ -991,19 +990,19 @@ const _quickTools = [
     isAvailableNow: true,
   ),
   _QuickTool(
-    title: 'Size Guide',
+    title: 'Parcel Sizer',
     subtitle:
-        'Check large letter, small parcel, and awkward-format thresholds in seconds.',
+        'Enter dimensions and weight to check the right format before pricing.',
     icon: Icons.straighten_outlined,
     accent: Color(0xFFB0653B),
-    footerLabel: 'Next planned tool',
+    footerLabel: 'Coming soon',
   ),
   _QuickTool(
     title: 'Weight Limits',
     subtitle: 'Confirm service cut-offs before you commit to the wrong option.',
     icon: Icons.scale_outlined,
     accent: Color(0xFF3B6C9C),
-    footerLabel: 'Planned after size guide',
+    footerLabel: 'Coming soon',
   ),
   _QuickTool(
     title: 'Service Finder',
@@ -1011,29 +1010,29 @@ const _quickTools = [
         'Guide customers toward the right mix of speed, signature, and tracking.',
     icon: Icons.rule_folder_outlined,
     accent: Color(0xFF7A5BA8),
-    footerLabel: 'Planned decision support',
+    footerLabel: 'Coming soon',
   ),
 ];
 
 const _essentials = [
   _BulletItem(
-    title: 'Make the common lookup the fastest',
+    title: 'Find parcel status',
     subtitle:
-        'Tracking should be the most direct action on the screen when queues are moving.',
+        'Open Track & Trace, paste or scan a reference, and read the latest status.',
     icon: Icons.flash_on_outlined,
     accent: Color(0xFF0F5B57),
   ),
   _BulletItem(
-    title: 'Keep stamp picking visual',
+    title: 'Make up exact postage',
     subtitle:
-        'Exact postage make-up should feel like a colour-led pick list, not a maths exercise.',
+        'Enter the required amount and pick the recommended stamp values from the book.',
     icon: Icons.style_outlined,
     accent: Color(0xFF8D6E63),
   ),
   _BulletItem(
-    title: 'Support explain-it-to-the-customer moments',
+    title: 'Explain the next step',
     subtitle:
-        'Helpful prompts and comparison language will matter as much as the raw data.',
+        'Use short status and service wording that is easy to repeat to a customer.',
     icon: Icons.record_voice_over_outlined,
     accent: Color(0xFF3B6C9C),
   ),
@@ -1041,9 +1040,9 @@ const _essentials = [
 
 const _roadmap = [
   _RoadmapItem(
-    title: 'Connect Track & Trace to a backend',
+    title: 'Connect live Track & Trace',
     subtitle:
-        'Replace the mock provider with a server-backed adapter for Royal Mail or UPU-style lookups.',
+        'Use approved Royal Mail access so real parcel events can appear in the same lookup flow.',
   ),
   _RoadmapItem(
     title: 'Parcel Sizer',
