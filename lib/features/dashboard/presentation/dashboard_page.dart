@@ -51,9 +51,9 @@ class DashboardPage extends StatelessWidget {
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final isWide = maxWidth >= 980;
-        final quickToolColumns = maxWidth >= 1120
-            ? 4
-            : maxWidth >= 720
+        final zoneColumns = maxWidth >= 1120
+            ? 3
+            : maxWidth >= 760
             ? 2
             : 1;
 
@@ -95,8 +95,8 @@ class DashboardPage extends StatelessWidget {
                                 flex: 3,
                                 child: Column(
                                   children: [
-                                    _QuickToolsPanel(
-                                      columns: quickToolColumns,
+                                    _ProductZonesPanel(
+                                      columns: zoneColumns,
                                       onOpenTracking: () =>
                                           _openTracking(context),
                                       onOpenStamps: () => _openStamps(context),
@@ -122,8 +122,8 @@ class DashboardPage extends StatelessWidget {
                         else
                           Column(
                             children: [
-                              _QuickToolsPanel(
-                                columns: quickToolColumns,
+                              _ProductZonesPanel(
+                                columns: zoneColumns,
                                 onOpenTracking: () => _openTracking(context),
                                 onOpenStamps: () => _openStamps(context),
                               ),
@@ -399,8 +399,8 @@ class _HeroButton extends StatelessWidget {
   }
 }
 
-class _QuickToolsPanel extends StatelessWidget {
-  const _QuickToolsPanel({
+class _ProductZonesPanel extends StatelessWidget {
+  const _ProductZonesPanel({
     required this.columns,
     required this.onOpenTracking,
     required this.onOpenStamps,
@@ -413,31 +413,28 @@ class _QuickToolsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfacePanel(
-      eyebrow: 'Current toolset',
-      title: 'Counter tools',
+      eyebrow: 'Product zones',
+      title: 'Choose the counter area',
       description:
-          'Open an available workflow. Upcoming tools are shown separately so the counter layout stays familiar as the toolkit grows.',
+          'Tools are grouped by the product family a clerk reaches for first: Mail, Travel, and Banking.',
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: _quickTools.length,
+        itemCount: _toolZones.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           mainAxisExtent: columns == 1
-              ? 232
+              ? 460
               : columns == 2
-              ? 236
-              : 192,
+              ? 430
+              : 468,
         ),
-        itemBuilder: (context, index) => _QuickToolCard(
-          data: _quickTools[index],
-          onTap: switch (_quickTools[index].routeKey) {
-            'tracking' => onOpenTracking,
-            'stamps' => onOpenStamps,
-            _ => null,
-          },
+        itemBuilder: (context, index) => _ToolZoneCard(
+          zone: _toolZones[index],
+          onOpenTracking: onOpenTracking,
+          onOpenStamps: onOpenStamps,
         ),
       ),
     );
@@ -588,104 +585,196 @@ class _SurfacePanel extends StatelessWidget {
   }
 }
 
-class _QuickToolCard extends StatelessWidget {
-  const _QuickToolCard({required this.data, required this.onTap});
+class _ToolZoneCard extends StatelessWidget {
+  const _ToolZoneCard({
+    required this.zone,
+    required this.onOpenTracking,
+    required this.onOpenStamps,
+  });
 
-  final _QuickTool data;
-  final VoidCallback? onTap;
+  final _ToolZone zone;
+  final VoidCallback onOpenTracking;
+  final VoidCallback onOpenStamps;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final content = Container(
+
+    return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: data.accent.withValues(alpha: 0.18)),
+        border: Border.all(color: zone.accent.withValues(alpha: 0.18)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [data.accent.withValues(alpha: 0.10), Colors.white],
+          colors: [zone.accent.withValues(alpha: 0.08), Colors.white],
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: data.accent.withValues(alpha: 0.14),
+                  color: zone.accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(data.icon, color: data.accent),
+                child: Icon(zone.icon, color: zone.accent),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: data.isAvailableNow
-                      ? const Color(0xFF0F5B57).withValues(alpha: 0.12)
-                      : const Color(0xFF7B6C59).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  data.isAvailableNow ? 'Live' : 'Planned',
-                  style: textTheme.labelMedium?.copyWith(
-                    color: data.isAvailableNow
-                        ? const Color(0xFF0F5B57)
-                        : const Color(0xFF7B6C59),
-                    fontWeight: FontWeight.w800,
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      zone.title,
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      zone.subtitle,
+                      style: textTheme.bodyMedium?.copyWith(
+                        height: 1.35,
+                        color: const Color(0xFF5B6563),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          Text(
-            data.title,
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            data.subtitle,
-            style: textTheme.bodyMedium?.copyWith(
-              height: 1.45,
-              color: const Color(0xFF576260),
+          const SizedBox(height: 18),
+          Expanded(
+            child: ListView.separated(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: zone.tools.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final tool = zone.tools[index];
+                return _ZoneToolRow(
+                  tool: tool,
+                  onTap: switch (tool.routeKey) {
+                    'tracking' => onOpenTracking,
+                    'stamps' => onOpenStamps,
+                    _ => null,
+                  },
+                );
+              },
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
-            data.footerLabel,
+            zone.footer,
             style: textTheme.labelLarge?.copyWith(
-              color: onTap != null ? data.accent : const Color(0xFF7B6C59),
+              color: zone.accent,
               fontWeight: FontWeight.w800,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _ZoneToolRow extends StatelessWidget {
+  const _ZoneToolRow({required this.tool, required this.onTap});
+
+  final _QuickTool tool;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final statusColor = tool.isAvailableNow
+        ? const Color(0xFF0F5B57)
+        : const Color(0xFF7B6C59);
+    final row = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF8F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE3DDD4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: tool.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(tool.icon, color: tool.accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tool.title,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tool.subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF5B6563),
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                tool.isAvailableNow ? 'Live' : 'Soon',
+                style: textTheme.labelSmall?.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Icon(
+                onTap == null
+                    ? Icons.lock_clock_outlined
+                    : Icons.arrow_forward_rounded,
+                size: 18,
+                color: statusColor,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
 
     if (onTap == null) {
-      return content;
+      return row;
     }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: content,
+        child: row,
       ),
     );
   }
@@ -927,6 +1016,24 @@ class _QuickTool {
   final bool isAvailableNow;
 }
 
+class _ToolZone {
+  const _ToolZone({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+    required this.footer,
+    required this.tools,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+  final String footer;
+  final List<_QuickTool> tools;
+}
+
 class _BulletItem {
   const _BulletItem({
     required this.title,
@@ -968,11 +1075,10 @@ const _heroPoints = [
   'Counter workflow',
 ];
 
-const _quickTools = [
+const _mailTools = [
   _QuickTool(
     title: 'Track & Trace',
-    subtitle:
-        'Pull up parcel progress quickly while the customer is in front of you.',
+    subtitle: 'Check parcel progress and current status.',
     icon: Icons.route_outlined,
     accent: Color(0xFF0F5B57),
     footerLabel: 'Open feature',
@@ -981,8 +1087,7 @@ const _quickTools = [
   ),
   _QuickTool(
     title: 'Best Fit Stamps',
-    subtitle:
-        'Build the quickest exact-postage pick list from the stamp book in front of you.',
+    subtitle: 'Make up exact postage from the stamp book.',
     icon: Icons.style_outlined,
     accent: Color(0xFF8D6E63),
     footerLabel: 'Open feature',
@@ -991,26 +1096,93 @@ const _quickTools = [
   ),
   _QuickTool(
     title: 'Parcel Sizer',
-    subtitle:
-        'Enter dimensions and weight to check the right format before pricing.',
+    subtitle: 'Use dimensions and weight to find the format.',
     icon: Icons.straighten_outlined,
     accent: Color(0xFFB0653B),
     footerLabel: 'Coming soon',
   ),
   _QuickTool(
-    title: 'Weight Limits',
-    subtitle: 'Confirm service cut-offs before you commit to the wrong option.',
-    icon: Icons.scale_outlined,
+    title: 'Service Finder',
+    subtitle: 'Compare speed, tracking, and signature needs.',
+    icon: Icons.rule_folder_outlined,
+    accent: Color(0xFF7A5BA8),
+    footerLabel: 'Coming soon',
+  ),
+];
+
+const _travelTools = [
+  _QuickTool(
+    title: 'Bureau de Change',
+    subtitle: 'Foreign currency reference and handover prompts.',
+    icon: Icons.currency_exchange_rounded,
     accent: Color(0xFF3B6C9C),
     footerLabel: 'Coming soon',
   ),
   _QuickTool(
-    title: 'Service Finder',
-    subtitle:
-        'Guide customers toward the right mix of speed, signature, and tracking.',
-    icon: Icons.rule_folder_outlined,
+    title: 'Travel Money Card',
+    subtitle: 'Checklist for card loads, reloads, and customer notes.',
+    icon: Icons.credit_card_rounded,
+    accent: Color(0xFF4E6B3F),
+    footerLabel: 'Coming soon',
+  ),
+  _QuickTool(
+    title: 'Travel Checklist',
+    subtitle: 'Quick prompts for ID, rates, fees, and receipts.',
+    icon: Icons.flight_takeoff_rounded,
     accent: Color(0xFF7A5BA8),
     footerLabel: 'Coming soon',
+  ),
+];
+
+const _bankingTools = [
+  _QuickTool(
+    title: 'Banking Workspace',
+    subtitle: 'Reserved for future banking counter tools.',
+    icon: Icons.account_balance_outlined,
+    accent: Color(0xFF6B5C4A),
+    footerLabel: 'To define',
+  ),
+  _QuickTool(
+    title: 'Cash Services',
+    subtitle: 'Potential prompts for deposits, withdrawals, and limits.',
+    icon: Icons.payments_outlined,
+    accent: Color(0xFF0F5B57),
+    footerLabel: 'To define',
+  ),
+  _QuickTool(
+    title: 'Customer Checks',
+    subtitle: 'Space for future ID, eligibility, and handoff guidance.',
+    icon: Icons.fact_check_outlined,
+    accent: Color(0xFFB0653B),
+    footerLabel: 'To define',
+  ),
+];
+
+const _toolZones = [
+  _ToolZone(
+    title: 'Mail',
+    subtitle: 'Letters, parcels, stamps, formats, and postal services.',
+    icon: Icons.local_shipping_outlined,
+    accent: Color(0xFF0F5B57),
+    footer: 'Postal tools and parcel workflows',
+    tools: _mailTools,
+  ),
+  _ToolZone(
+    title: 'Travel',
+    subtitle: 'Foreign currency, travel money, and trip-related prompts.',
+    icon: Icons.flight_takeoff_rounded,
+    accent: Color(0xFF3B6C9C),
+    footer: 'Bureau de Change and travel services',
+    tools: _travelTools,
+  ),
+  _ToolZone(
+    title: 'Banking',
+    subtitle:
+        'A reserved space for banking services once the useful tools are clear.',
+    icon: Icons.account_balance_outlined,
+    accent: Color(0xFF6B5C4A),
+    footer: 'Discovery area',
+    tools: _bankingTools,
   ),
 ];
 
